@@ -287,12 +287,31 @@ npm install
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { existsSync } from 'node:fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-// Direct path to skill-creator CLI
-const skillCreatorPath = '/Users/kzf/.claude/agents/skill-creator-package/dist/cli.js'
+// Find skill-creator CLI - try multiple possible paths
+let skillCreatorPath = process.env.SKILL_CREATOR_PATH || ''
+
+// If not set, try to find it
+if (!skillCreatorPath) {
+  const possiblePaths = [
+    join(__dirname, '..', '..', '..', '..', 'dist', 'cli.js'), // Relative to skill
+    join(process.cwd(), 'dist', 'cli.js'), // From current working directory
+    '/usr/local/bin/skill-creator', // Global installation
+    '/Users/kzf/.claude/agents/skill-creator/dist/cli.js', // Default user path
+  ]
+
+  skillCreatorPath = possiblePaths.find(p => existsSync(p)) || ''
+}
+
+if (!skillCreatorPath) {
+  console.error('❌ Could not find skill-creator CLI')
+  console.error('💡 Please install skill-creator or set SKILL_CREATOR_PATH environment variable')
+  process.exit(1)
+}
 
 const args = process.argv.slice(2)
 

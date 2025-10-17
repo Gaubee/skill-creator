@@ -54,6 +54,10 @@ describe('Skill Creation Integration Tests', () => {
         cwd: skillPath,
         encoding: 'utf-8',
         stdio: 'pipe',
+        env: {
+          ...process.env,
+          SKILL_CREATOR_PATH: join(process.cwd(), 'dist', 'cli.js')
+        }
       })
 
       // Build index
@@ -61,6 +65,10 @@ describe('Skill Creation Integration Tests', () => {
       execSync('node ' + buildScript, {
         cwd: skillPath,
         encoding: 'utf-8',
+        env: {
+          ...process.env,
+          SKILL_CREATOR_PATH: join(process.cwd(), 'dist', 'cli.js')
+        }
       })
 
       // Search functionality
@@ -68,6 +76,10 @@ describe('Skill Creation Integration Tests', () => {
       const searchOutput = execSync('node ' + searchScript + ' --query "testing setup"', {
         cwd: skillPath,
         encoding: 'utf-8',
+        env: {
+          ...process.env,
+          SKILL_CREATOR_PATH: join(process.cwd(), 'dist', 'cli.js')
+        }
       })
 
       expect(searchOutput).toContain('Search Results')
@@ -78,6 +90,10 @@ describe('Skill Creation Integration Tests', () => {
       const listOutput = execSync('node ' + listScript, {
         cwd: skillPath,
         encoding: 'utf-8',
+        env: {
+          ...process.env,
+          SKILL_CREATOR_PATH: join(process.cwd(), 'dist', 'cli.js')
+        }
       })
 
       expect(listOutput).toContain('Content Statistics')
