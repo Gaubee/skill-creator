@@ -1,0 +1,57 @@
+{
+  "name": "skill-creator",
+  "version": "0.0.0",
+  "description": "Create claude-code-skills with documentation management",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "claude-code",
+    "skills",
+    "documentation",
+    "chromadb",
+    "search"
+  ],
+  "author": "Gaubee",
+  "license": "MIT",
+  "dependencies": {
+    "@chroma-core/default-embed": "^0.1.8",
+    "chromadb": "^1.8.1",
+    "commander": "^12.1.0",
+    "dedent": "^1.5.3",
+    "glob": "^11.0.0",
+    "gradient-string": "^3.0.0",
+    "inquirer": "^10.2.2",
+    "markdown-it": "^14.1.0",
+    "ora": "^8.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.9",
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^2.1.9",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "bin": {
+    "skill-creator": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
