@@ -314,12 +314,20 @@ program
       process.exit(1)
     }
 
-    const _skillDir = join(baseDir, dirs[0])
+    const skillDir = join(baseDir, dirs[0])
 
-    // Run update script
-    const { runScript } = await import('./core/runScript.js')
-    const args = ['--force']
-    await runScript('update-context7', args)
+    // Change to skill directory and run update script
+    const { chdir } = await import('node:process')
+    const originalCwd = process.cwd()
+    chdir(skillDir)
+
+    try {
+      const { runScript } = await import('./core/runScript.js')
+      const args = ['--force']
+      await runScript('update-context7', args)
+    } finally {
+      chdir(originalCwd)
+    }
 
     console.log(gradient('green', 'cyan')('\n✅ Documentation downloaded and sliced!'))
   })
@@ -334,10 +342,36 @@ program
     console.log(`Package: ${packageName}`)
     console.log(`Query: ${query}`)
 
-    // Find and run search script
-    const { runScript } = await import('./core/runScript.js')
-    const args = ['--query', query]
-    await runScript('search', args)
+    // Find skill directory
+    const { join, dirname } = await import('node:path')
+    const { homedir } = await import('node:os')
+    const { readdirSync } = await import('node:fs')
+
+    const baseDir = join(process.cwd(), '.claude', 'skills')
+    const dirs = readdirSync(baseDir, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name)
+      .filter(name => name.includes(packageName.replace(/[^a-z0-9]/gi, '')))
+
+    if (dirs.length === 0) {
+      console.error(`❌ No skill found for package ${packageName}`)
+      process.exit(1)
+    }
+
+    const skillDir = join(baseDir, dirs[0])
+
+    // Change to skill directory and run search script
+    const { chdir } = await import('node:process')
+    const originalCwd = process.cwd()
+    chdir(skillDir)
+
+    try {
+      const { runScript } = await import('./core/runScript.js')
+      const args = ['--query', query]
+      await runScript('search', args)
+    } finally {
+      chdir(originalCwd)
+    }
   })
 
 // Add add-skill-content command
@@ -356,15 +390,41 @@ program
     console.log(gradient('cyan', 'magenta')('\n📝 Adding content to skill...'))
     console.log(`Package: ${packageName}`)
 
-    // Find and run add script
-    const { runScript } = await import('./core/runScript.js')
-    const args = []
+    // Find skill directory
+    const { join, dirname } = await import('node:path')
+    const { homedir } = await import('node:os')
+    const { readdirSync } = await import('node:fs')
 
-    if (options.title) args.push('--title', options.title)
-    if (options.content) args.push('--content', options.content)
-    if (options.file) args.push('--file', options.file)
+    const baseDir = join(process.cwd(), '.claude', 'skills')
+    const dirs = readdirSync(baseDir, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name)
+      .filter(name => name.includes(packageName.replace(/[^a-z0-9]/gi, '')))
 
-    await runScript('add', args)
+    if (dirs.length === 0) {
+      console.error(`❌ No skill found for package ${packageName}`)
+      process.exit(1)
+    }
+
+    const skillDir = join(baseDir, dirs[0])
+
+    // Change to skill directory and run add script
+    const { chdir } = await import('node:process')
+    const originalCwd = process.cwd()
+    chdir(skillDir)
+
+    try {
+      const { runScript } = await import('./core/runScript.js')
+      const args = []
+
+      if (options.title) args.push('--title', options.title)
+      if (options.content) args.push('--content', options.content)
+      if (options.file) args.push('--file', options.file)
+
+      await runScript('add', args)
+    } finally {
+      chdir(originalCwd)
+    }
 
     console.log(gradient('green', 'cyan')('\n✅ Content added successfully!'))
   })

@@ -63,13 +63,15 @@
    4. 创建出 `.claude/skills/{skill-name}` 文件夹后。还需要继续运行可靠工具，这里需要让 subagents 去调用 mcp-context7 来搜索相关的文档，具体参考`doc-downloader.md`
    5. 在Context7中找到project-id后，我们就要调用 `cli --dir=skill_dir download-context7 project-id`去下载的文档，并根据规范进行切分。存放到`{skill_dir}/assets/references/context7/*.md`
    6. 有了md文件，我们就可以通过`cli --dir=skill_dir search "Key Words"`来搜索文档。这时候的流程就是上文提到的，自动建立索引的工作
-   7. 我们还要让subagents知道，以后可以用`cli --dir=skill_dir addSkill`来添加user文档
+   7. 我们还要让subagents知道，以后可以用`cli --dir=skill_dir add-user-skill`来添加user文档
    8. 我们还要让subagents知道，以后可以用`cli --dir=skill_dir download-context7 project-id --force`强制更新文档
 
 ---
 
 **工作内容**：
 
-1. 请你根据"具体流程"，确定每一个工具都通过了测试。
-2. 如果通过了测试，请自己尝试验证整个流程是否符合预期地工作。
-3. 最后请你清理无关的代码文件。进行git提交
+1. 请你根据"具体流程"，确定每一个工具都按照预期完成了开发并通过了测试。
+2. 如果通过了测试，请自己调用 subagents，让subagetns根据规范执行调用工具，在这个过程中验证整个流程是否符合预期地工作。
+3. 一旦有任何错误，请反思并修复流程中的错误(可能是subagents的提示词错误，可能是cli工具的错误)，并确保测试和类型检查再次通过，然后重复步骤2。
+4. 如果执行通过，要在此确认，整个执行流程是否符合“具体流程”，否则回到步骤1。
+5. 最后请你清理无关的代码文件。进行git提交。
