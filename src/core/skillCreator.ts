@@ -2,7 +2,7 @@
  * Main skill creator class
  */
 
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { existsSync, mkdirSync, writeFileSync, chmodSync, readdirSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
@@ -39,15 +39,15 @@ export class SkillCreator {
       }
 
       // Create skill folder name
-      const skillName = PackageUtils.createSkillFolderName(
-        options.packageName,
-        version ?? '1.0.0',
-      )
+      const skillName = PackageUtils.createSkillFolderName(options.packageName, version ?? '1.0.0')
 
       // Determine output path
-      const outputPath = options.storage === 'user'
-        ? join(homedir(), '.claude', 'skills')
-        : options.path ?? '.'
+      const outputPath =
+        options.storage === 'user'
+          ? join(homedir(), '.claude', 'skills')
+          : options.path
+            ? resolve(options.path) // Ensure absolute path
+            : join(process.cwd(), '.claude', 'skills')
 
       // Create skill directory
       const skillDir = join(outputPath, skillName)
@@ -55,10 +55,14 @@ export class SkillCreator {
       if (existsSync(skillDir)) {
         const files = readdirSync(skillDir)
         // Filter out .gitkeep files
-        const realFiles = files.filter(f => f !== '.gitkeep')
-        if (realFiles.length > 0) {
+        const realFiles = files.filter((f) => f !== '.gitkeep')
+        if (realFiles.length > 0 && !options.force) {
           result.message = `Skill directory already exists and is not empty: ${skillDir}`
           return result
+        } else if (realFiles.length > 0 && options.force) {
+          console.log(
+            `⚠️  Skill directory exists, forcing overwrite of existing files: ${skillDir}`
+          )
         }
       }
 
@@ -76,7 +80,8 @@ export class SkillCreator {
       const config = Config.createDefault({
         skillName,
         description: options.description ?? `Documentation skill for ${options.packageName}`,
-        context7Id: context7Id ?? `/${options.packageName.replace('@', '').replace('/', '__')}/docs`,
+        context7Id:
+          context7Id ?? `/${options.packageName.replace('@', '').replace('/', '__')}/docs`,
       })
 
       // Set the actual version (not formatted) in config
@@ -101,9 +106,6 @@ export class SkillCreator {
       // Create package.json
       await this.createPackageJson(skillDir, config)
 
-      // Create scripts
-      await this.createScripts(skillDir)
-
       result.created = true
       result.skillPath = skillDir
       result.message = `Skill created successfully: ${skillDir}`
@@ -124,7 +126,6 @@ export class SkillCreator {
 
   private createDirectoryStructure(skillDir: string): void {
     const dirs = [
-      'scripts',
       'assets/references/context7',
       'assets/references/user',
       'assets/chroma_db',
@@ -161,31 +162,31 @@ This skill provides comprehensive documentation management for ${config.name}, f
 ### Search Documentation
 To search through the documentation:
 \`\`\`bash
-node scripts/search.js --query "your search query"
+skill-creator search-skill --pwd "${skillDir}" "your search query"
 \`\`\`
 
 ### Add New Knowledge
 To add new documentation or knowledge:
 \`\`\`bash
-node scripts/add.js --content "your content" --title "content title"
+skill-creator add-skill --pwd "${skillDir}" --title "content title" --content "your content"
 \`\`\`
 
 ### Update from Context7
 To refresh documentation from Context7:
 \`\`\`bash
-node scripts/update_context7.js
+skill-creator download-context7 --pwd "${skillDir}" <context7_library_id>
 \`\`\`
 
 ### List All Content
 To list all documentation files:
 \`\`\`bash
-node scripts/list_content.js
+cd "${skillDir}" && skill-creator run-script list-content
 \`\`\`
 
 ### Rebuild Search Index
 To manually rebuild the search index:
 \`\`\`bash
-node scripts/build_index.js
+cd "${skillDir}" && skill-creator run-script build-index
 \`\`\`
 
 ## File Structure
@@ -193,7 +194,6 @@ node scripts/build_index.js
 - \`assets/references/context7/\` - Auto-generated Context7 documentation slices
 - \`assets/references/user/\` - User-generated knowledge and documentation
 - \`assets/chroma_db/\` - ChromaDB index for semantic search
-- \`scripts/\` - Management scripts for documentation operations
 
 ## Workflow
 
@@ -232,101 +232,20 @@ npm install
       version: config.version,
       description: config.description,
       type: 'module',
-      scripts: {
-        'search': 'node scripts/search.js',
-        'add': 'node scripts/add.js',
-        'update-context7': 'node scripts/update_context7.js',
-        'build-index': 'node scripts/build_index.js',
-        'list-content': 'node scripts/list_content.js',
-      },
       dependencies: {
-        'chromadb': '^1.8.1',
+        chromadb: '^1.8.1',
         'markdown-it': '^14.1.0',
-        'zod': '^3.24.0',
+        zod: '^3.24.0',
         'gradient-string': '^3.0.0',
-        'ora': '^8.1.0',
-        'inquirer': '^10.2.2',
-        'dedent': '^1.5.3',
+        ora: '^8.1.0',
+        inquirer: '^10.2.2',
+        dedent: '^1.5.3',
       },
       devDependencies: {
         '@types/node': '^22.10.2',
       },
     }
 
-    writeFileSync(
-      join(skillDir, 'package.json'),
-      JSON.stringify(content, null, 2),
-    )
-  }
-
-  private createScripts(skillDir: string): void {
-    const scriptsDir = join(skillDir, 'scripts')
-
-    // The scripts will reference the skill-creator package
-    const scriptFiles = [
-      'search.js',
-      'add.js',
-      'update_context7.js',
-      'build_index.js',
-      'list_content.js',
-    ]
-
-    for (const script of scriptFiles) {
-      const scriptPath = join(scriptsDir, script)
-      this.createScriptWrapper(scriptPath, script.replace('.js', ''))
-    }
-  }
-
-  private createScriptWrapper(scriptPath: string, command: string): void {
-    const content = `#!/usr/bin/env node
-/**
- * Wrapper script for ${command}
- * This script forwards execution to the skill-creator package
- */
-
-import { spawn } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
-import { existsSync } from 'node:fs'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-// Find skill-creator CLI - try multiple possible paths
-let skillCreatorPath = process.env.SKILL_CREATOR_PATH || ''
-
-// If not set, try to find it
-if (!skillCreatorPath) {
-  const possiblePaths = [
-    join(__dirname, '..', '..', '..', '..', 'dist', 'cli.js'), // Relative to skill
-    join(process.cwd(), 'dist', 'cli.js'), // From current working directory
-    '/usr/local/bin/skill-creator', // Global installation
-    '/Users/kzf/.claude/agents/skill-creator/dist/cli.js', // Default user path
-  ]
-
-  skillCreatorPath = possiblePaths.find(p => existsSync(p)) || ''
-}
-
-if (!skillCreatorPath) {
-  console.error('❌ Could not find skill-creator CLI')
-  console.error('💡 Please install skill-creator or set SKILL_CREATOR_PATH environment variable')
-  process.exit(1)
-}
-
-const args = process.argv.slice(2)
-
-// Run the command
-const child = spawn('node', [skillCreatorPath, 'run-script', '${command}'.replace(/_/g, '-'), ...args], {
-  stdio: 'inherit',
-  cwd: join(__dirname, '..'),
-})
-
-child.on('exit', (code) => {
-  process.exit(code ?? 1)
-})
-`
-
-    writeFileSync(scriptPath, content)
-    chmodSync(scriptPath, 0o755)
+    writeFileSync(join(skillDir, 'package.json'), JSON.stringify(content, null, 2))
   }
 }
