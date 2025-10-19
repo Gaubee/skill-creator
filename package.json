@@ -2,12 +2,14 @@
   "name": "skill-creator",
   "version": "0.0.0",
   "description": "Create claude-code-skills with documentation management",
-  "main": "dist/index.js",
+  "bin": {
+    "skill-creator": "dist/cli.js"
+  },
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "cli": "node dist/cli.js",
     "test": "vitest run",
     "format": "prettier --write .",
     "type-check": "tsc --noEmit"
@@ -48,9 +50,6 @@
     "templates",
     "README.md"
   ],
-  "bin": {
-    "skill-creator": "dist/cli.js"
-  },
   "engines": {
     "node": ">=18.0.0"
   }

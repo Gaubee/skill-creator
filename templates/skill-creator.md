@@ -27,18 +27,14 @@ npm install -g skill-creator
 
    - AI可以自行判断进行选择，如果无法下结论，就询问用户选择哪个
 
-2. **获取包信息**（可选步骤）
-
-   现在搜索结果已经包含了所有必要信息，包括 `skill_dir_name`。你可以直接从搜索结果中使用这些信息。
-
-   如果需要重新获取特定包的信息，可以使用：
+2. **获取包信息**
 
    ```bash
    skill-creator get-info @package/name
    # 打印出一个JSON-Object
    ```
 
-   **搜索结果已包含**以下信息：
+   **至少**包含以下信息：
    - skill_dir_name 文件夹的名称
    - name 包名
    - version 版本号
