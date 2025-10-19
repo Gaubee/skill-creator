@@ -3,14 +3,22 @@
  */
 
 import { join } from 'node:path'
-import { existsSync, mkdirSync, readdirSync, writeFileSync, rmSync, statSync, readFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  writeFileSync,
+  rmSync,
+  statSync,
+  readFileSync,
+} from 'node:fs'
 import { createHash } from 'node:crypto'
 import MarkdownIt from 'markdown-it'
 import type {
   ContentStats,
   ContentItem,
   UpdateContext7Result,
-  AddContentResult
+  AddContentResult,
 } from '../types/index.js'
 
 export interface ContentManagerOptions {
@@ -35,7 +43,7 @@ export class ContentManager {
 
   async updateFromContext7(
     libraryId: string,
-    force: boolean = false,
+    force: boolean = false
   ): Promise<UpdateContext7Result> {
     const result: UpdateContext7Result = {
       updated: false,
@@ -91,6 +99,7 @@ export class ContentManager {
     title: string
     content: string
     force?: boolean
+    forceAppend?: boolean
     autoUpdate?: boolean
   }): Promise<AddContentResult> {
     const result: AddContentResult = {
@@ -113,10 +122,7 @@ export class ContentManager {
           const filePath = join(this.options.referencesDir, bestMatch.file_path)
 
           if (this.isContentEnhanced(bestMatch, options.content)) {
-            writeFileSync(
-              filePath,
-              `# ${options.title}\n\n${options.content}`,
-            )
+            writeFileSync(filePath, `# ${options.title}\n\n${options.content}`)
 
             result.updated = true
             result.filePath = filePath
@@ -131,7 +137,7 @@ export class ContentManager {
         } else {
           // Similar content found but not updating
           result.message = `Found ${similar.length} similar documents`
-          result.similarContent = similar.slice(0, 3).map(s => ({
+          result.similarContent = similar.slice(0, 3).map((s) => ({
             title: s.title,
             score: s.score,
             source: s.source,
@@ -142,16 +148,61 @@ export class ContentManager {
       } else if (!result.added && !result.updated && !result.skipped) {
         // Create new file only if no similar content was found
         mkdirSync(this.userDir, { recursive: true })
-        const filePath = this.createUniqueFilePath(options.title, this.userDir)
 
-        writeFileSync(filePath, `# ${options.title}\n\n${options.content}`)
+        // Check if file with same title already exists
+        const safeTitle =
+          options.title
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/[-\s]+/g, '_')
+            .replace(/^_+|_+$/g, '')
+            .slice(0, 50) || 'content'
+        const expectedFilePath = join(this.userDir, `${safeTitle}.md`)
 
-        result.added = true
-        result.filePath = filePath
-        result.message = `Created new content: ${filePath.split('/').pop()}`
+        if (existsSync(expectedFilePath) && !options.force && !options.forceAppend) {
+          // File exists and no force flag - show error and file content
+          const { readFileSync } = await import('node:fs')
+          const existingContent = readFileSync(expectedFilePath, 'utf-8')
 
-        // Trigger index update
-        this.triggerReindex()
+          result.message = `File already exists: ${safeTitle}.md. Use --force to overwrite or --force-append to append.`
+          result.existingFile = {
+            path: expectedFilePath,
+            content: existingContent,
+          }
+        } else {
+          // Either file doesn't exist or force flag is set
+          let filePath: string
+          let fileName: string
+
+          if (existsSync(expectedFilePath) && options.force) {
+            // Force overwrite: directly replace the existing file
+            filePath = expectedFilePath
+            fileName = safeTitle + '.md'
+            writeFileSync(filePath, `# ${options.title}\n\n${options.content}`)
+            result.message = `Overwrote existing content: ${fileName}`
+          } else if (existsSync(expectedFilePath) && options.forceAppend) {
+            // Force append: add content to the end of existing file
+            filePath = expectedFilePath
+            fileName = safeTitle + '.md'
+            const { readFileSync } = await import('node:fs')
+            const existingContent = readFileSync(filePath, 'utf-8')
+            const newContent = `${existingContent}\n\n---\n\n# ${options.title}\n\n${options.content}`
+            writeFileSync(filePath, newContent)
+            result.message = `Appended content to existing file: ${fileName}`
+          } else {
+            // Create new file
+            filePath = this.createUniqueFilePath(options.title, this.userDir)
+            fileName = filePath.split('/').pop() || safeTitle + '.md'
+            writeFileSync(filePath, `# ${options.title}\n\n${options.content}`)
+            result.message = `Created new content: ${fileName}`
+          }
+
+          result.added = true
+          result.filePath = filePath
+
+          // Trigger index update
+          this.triggerReindex()
+        }
       }
     } catch (error) {
       result.message = `Failed to add content: ${error}`
@@ -171,15 +222,11 @@ export class ContentManager {
     }
 
     if (stats.userDirExists) {
-      stats.userFiles = readdirSync(this.userDir).filter(f =>
-        f.endsWith('.md')
-      ).length
+      stats.userFiles = readdirSync(this.userDir).filter((f) => f.endsWith('.md')).length
     }
 
     if (stats.context7DirExists) {
-      stats.context7Files = readdirSync(this.context7Dir).filter(f =>
-        f.endsWith('.md')
-      ).length
+      stats.context7Files = readdirSync(this.context7Dir).filter((f) => f.endsWith('.md')).length
     }
 
     stats.totalFiles = stats.userFiles + stats.context7Files
@@ -307,7 +354,9 @@ export class ContentManager {
     return this.mergeShortSections(sections)
   }
 
-  private mergeShortSections(sections: Array<{ title: string; content: string }>): Array<{ title: string; content: string }> {
+  private mergeShortSections(
+    sections: Array<{ title: string; content: string }>
+  ): Array<{ title: string; content: string }> {
     const merged: Array<{ title: string; content: string }> = []
 
     for (let i = 0; i < sections.length; i++) {
@@ -337,26 +386,38 @@ export class ContentManager {
 
   private isMajorSection(title: string): boolean {
     const majorKeywords = [
-      'introduction', 'getting started', 'installation', 'setup',
-      'api', 'reference', 'examples', 'tutorial', 'guide',
-      'overview', 'quick start', 'basics', 'advanced'
+      'introduction',
+      'getting started',
+      'installation',
+      'setup',
+      'api',
+      'reference',
+      'examples',
+      'tutorial',
+      'guide',
+      'overview',
+      'quick start',
+      'basics',
+      'advanced',
     ]
 
     const titleLower = title.toLowerCase()
-    return majorKeywords.some(keyword => titleLower.includes(keyword))
+    return majorKeywords.some((keyword) => titleLower.includes(keyword))
   }
 
   private createUniqueFileName(title: string, index: number, dir: string): string {
     // Clean up the title for use in filename
-    const safeTitle = title
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[-\s]+/g, '_')
-      .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
-      .slice(0, 50) || 'section'
+    const safeTitle =
+      title
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[-\s]+/g, '_')
+        .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+        .slice(0, 50) || 'section'
 
     // Create hierarchical naming based on heading level if possible
     const headingLevel = this.extractHeadingLevel(title)
-    const prefix = headingLevel > 1 ? `${'0'.repeat(Math.min(headingLevel - 1, 3))}${index}` : index.toString()
+    const prefix =
+      headingLevel > 1 ? `${'0'.repeat(Math.min(headingLevel - 1, 3))}${index}` : index.toString()
 
     // Use both index and title for better organization
     const baseName = `${prefix.padStart(4, '0')}_${safeTitle}`
@@ -387,30 +448,28 @@ export class ContentManager {
   }
 
   private createUniqueFilePath(title: string, dir: string): string {
-    const now = new Date()
-    const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`
+    // Convert to lowercase and clean up for filename
+    const safeTitle =
+      title
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[-\s]+/g, '_')
+        .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+        .slice(0, 50) || 'content'
 
-    const safeTitle = title
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[-\s]+/g, '_')
-      .slice(0, 50) || 'content'
-
-    const baseName = `${safeTitle}.${timestamp}`
-    let filename = `${baseName}.md`
+    let filename = `${safeTitle}.md`
     let counter = 1
-
     while (existsSync(join(dir, filename))) {
-      filename = `${baseName}_${counter.toString().padStart(2, '0')}.md`
+      filename = `${safeTitle}_${counter.toString().padStart(2, '0')}.md`
       counter++
     }
-
     return join(dir, filename)
   }
 
   private async findSimilarContent(
     content: string,
     threshold: number = 0.85,
-    maxResults: number = 10,
+    maxResults: number = 10
   ): Promise<any[]> {
     const results = await this.options.searchEngine.search(content, maxResults)
     return results.filter((r: any) => r.score >= threshold)

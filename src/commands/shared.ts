@@ -24,13 +24,16 @@ export function loadSkillConfig(): SkillConfig {
 /**
  * Parse command line arguments
  */
-export function parseArgs(args: string[], definitions: Array<{
-  name: string
-  alias?: string
-  type: 'string' | 'number' | 'boolean'
-  required?: boolean
-  default?: any
-}>): Record<string, any> {
+export function parseArgs(
+  args: string[],
+  definitions: Array<{
+    name: string
+    alias?: string
+    type: 'string' | 'number' | 'boolean'
+    required?: boolean
+    default?: any
+  }>
+): Record<string, any> {
   const result: Record<string, any> = {}
 
   for (let i = 0; i < args.length; i++) {
@@ -38,7 +41,7 @@ export function parseArgs(args: string[], definitions: Array<{
 
     if (arg.startsWith('--')) {
       const key = arg.slice(2)
-      const def = definitions.find(d => d.name === key || d.alias === key)
+      const def = definitions.find((d) => d.name === key || d.alias === key)
 
       if (def) {
         if (def.type === 'boolean') {
@@ -50,7 +53,7 @@ export function parseArgs(args: string[], definitions: Array<{
       }
     } else if (arg.startsWith('-')) {
       const key = arg.slice(1)
-      const def = definitions.find(d => d.alias === key)
+      const def = definitions.find((d) => d.alias === key)
 
       if (def) {
         if (def.type === 'boolean') {
@@ -84,13 +87,14 @@ export function parseArgs(args: string[], definitions: Array<{
 /**
  * Create unified search engine instance
  */
-export async function createSearchEngine(config: SkillConfig) {
+export async function createSearchEngine(
+  config: SkillConfig,
+  searchMode: 'chroma' | 'fuzzy' | 'auto' = 'auto'
+) {
   const { UnifiedSearchEngine } = await import('../core/unifiedSearch.js')
 
-  const searchType = process.env.USE_CHROMA === 'true' ? 'chroma' : 'simple'
-
   return new UnifiedSearchEngine({
-    type: searchType,
+    type: searchMode,
     referencesDir: join(process.cwd(), 'assets', 'references'),
     dbPath: join(process.cwd(), 'assets', 'chroma_db'),
     collectionName: `${config.name.replace(/[^a-zA-Z0-9._-]/g, '_')}_docs`,

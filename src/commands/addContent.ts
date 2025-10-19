@@ -22,6 +22,7 @@ export async function addContent(args: string[]): Promise<void> {
     { name: 'content', alias: 'c', type: 'string', required: false },
     { name: 'file', alias: 'f', type: 'string', required: false },
     { name: 'force', type: 'boolean' },
+    { name: 'force-append', type: 'boolean' },
     { name: 'no-update', type: 'boolean' },
   ])
 
@@ -58,10 +59,20 @@ export async function addContent(args: string[]): Promise<void> {
     title,
     content,
     force: options.force,
+    forceAppend: options['force-append'],
     autoUpdate: !options['no-update'],
   })
 
   console.log(result.message)
+
+  // Handle existing file case
+  if (result.existingFile) {
+    console.log('\n📄 Existing file content:')
+    console.log('─'.repeat(50))
+    console.log(result.existingFile.content)
+    console.log('─'.repeat(50))
+    process.exit(1)
+  }
 
   if (result.similarContent && result.similarContent.length > 0) {
     console.log('\nSimilar content found:')

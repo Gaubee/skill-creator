@@ -49,6 +49,7 @@ export interface CreateSkillOptions {
   noInitDocs?: boolean
   storage?: 'project' | 'user'
   version?: string
+  force?: boolean
 }
 
 export interface CreateSkillResult {
@@ -78,6 +79,10 @@ export interface AddContentResult {
     source: string
     preview: string
   }>
+  existingFile?: {
+    path: string
+    content: string
+  }
 }
 
 export interface PackageVersion {
