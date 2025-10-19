@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { rmSync, existsSync, readFileSync } from 'node:fs'
+import { rmSync, existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { execSync } from 'node:child_process'
 import { createTempDir, cleanupTempDir } from '../test-utils.js'
@@ -45,7 +45,7 @@ describe('Skill Creation Integration Tests', () => {
         'create-cc-skill',
         `"${skill_dir_name}"`,
         `--package-name "${packageName}"`,
-        `--version "${version}"`,
+        `--package-version "${version}"`,
         `--description "${description}"`,
         '--scope project',
       ].join(' ')
@@ -56,7 +56,8 @@ describe('Skill Creation Integration Tests', () => {
       expect(existsSync(skillDir)).toBe(true)
 
       // 4. Add documentation
-      const addContent = "'# Zod is great for validation'"
+      const addContent =
+        "'# Zod Validation Guide\n\nZod is a TypeScript-first schema declaration and validation library. It provides powerful validation capabilities that make it easy to ensure data integrity in your applications. With Zod, you can define schemas and validate data against them with simple, intuitive syntax.'"
       const addCommand = `${cliCmd} add-skill --pwd "${skillDir}" --title "My Zod Note" --content ${addContent}`
       execSync(addCommand, { encoding: 'utf-8' })
 
@@ -68,7 +69,7 @@ describe('Skill Creation Integration Tests', () => {
       const searchSkillCommand = `${cliCmd} search-skill --pwd "${skillDir}" "validation"`
       const searchSkillOutput = execSync(searchSkillCommand, { encoding: 'utf-8' })
       expect(searchSkillOutput).toContain('Search Results')
-      expect(searchSkillOutput).toContain('My Zod Note')
+      expect(searchSkillOutput).toContain('Zod Validation Guide')
 
       // 7. Verify file structure
       const expectedFiles = [

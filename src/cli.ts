@@ -23,11 +23,11 @@ program
   .argument('<skill_dir_name>', 'The name of the skill directory to create')
   .option('--scope <scope>', 'Storage scope (project or user)', 'project')
   .option('--package-name <name>', 'The npm package name')
-  .option('--version <ver>', 'The package version')
+  .option('--package-version <ver>', 'The package version')
   .option('--description <desc>', 'The package description')
   .action(async (skillDirName, options) => {
-    if (!options.packageName || !options.version) {
-      console.error('❌ --package-name and --version are required.')
+    if (!options.packageName || !options.packageVersion) {
+      console.error('❌ --package-name and --package-version are required.')
       process.exit(1)
     }
 
@@ -35,11 +35,11 @@ program
 
     const createOptions: CreateSkillOptions = {
       packageName: options.packageName,
-      // Let createSkill handle path resolution based on storage option
-      path: options.scope === 'user' ? undefined : '.',
+      // For project scope, path should be .claude/skills relative to current directory
+      path: options.scope === 'user' ? undefined : '.claude/skills',
       description: options.description,
       storage: options.scope,
-      version: options.version,
+      version: options.packageVersion,
       noInitDocs: true, // Docs are downloaded in a separate step in the new flow
     }
 
@@ -97,6 +97,33 @@ program
       limit: parseInt(options.limit),
     })
     console.log(JSON.stringify(suggestions, null, 2))
+  })
+
+// Add get-info command for package information
+program
+  .command('get-info')
+  .argument('<package_name>', 'The npm package name to get information for')
+  .action(async (packageName: string) => {
+    const packageInfo = await PackageUtils.getPackageInfo(packageName)
+
+    if (!packageInfo) {
+      console.error(`❌ Package "${packageName}" not found or API error occurred.`)
+      process.exit(1)
+    }
+
+    const version = packageInfo.version
+    const skillDirName = PackageUtils.createSkillFolderName(packageName, version)
+
+    const result = {
+      skill_dir_name: skillDirName,
+      name: packageInfo.name,
+      version: version,
+      homepage: packageInfo.homepage || '',
+      repo: packageInfo.repository?.url || '',
+      description: packageInfo.description || '',
+    }
+
+    console.log(JSON.stringify(result, null, 2))
   })
 
 // Add search-skill command
@@ -286,6 +313,5 @@ program
 export { program }
 
 // Run CLI if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  program.parse()
-}
+// Always parse for now since we're using this as the main CLI entry point
+program.parse()
