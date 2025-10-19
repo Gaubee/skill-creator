@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { findAvailablePort, waitForService } from './portUtils.js'
 import { createHash } from 'node:crypto'
+import { createRequire } from 'node:module'
 
 export interface ChromaServerConfig {
   /** skill 目录路径 */
@@ -35,6 +36,7 @@ export class ChromaServerManager {
   private static instance: ChromaServerManager | null = null
   private servers: Map<string, ChromaServerInfo> = new Map()
   private chromaCliPath: string | null = null
+  private projectRoot: string | null = null
 
   private constructor() {}
 
@@ -55,19 +57,30 @@ export class ChromaServerManager {
     if (this.chromaCliPath) return
 
     try {
-      // 尝试从 node_modules 找到 chromadb 包
-      const chromaPackagePath = require.resolve('chromadb/package.json')
-      const chromaDir = dirname(chromaPackagePath)
+      // 首先尝试从当前项目目录查找
+      let projectDir = process.cwd()
+
+      // 如果我们在 skill 目录中，需要向上查找找到包含 node_modules 的项目根目录
+      while (!existsSync(join(projectDir, 'node_modules', 'chromadb')) && projectDir !== '/') {
+        projectDir = dirname(projectDir)
+      }
+
+      const nodeModulesPath = join(projectDir, 'node_modules')
+      const chromaDir = join(nodeModulesPath, 'chromadb')
       const cliPath = join(chromaDir, 'dist', 'cli.mjs')
 
       if (existsSync(cliPath)) {
         this.chromaCliPath = cliPath
-        console.log(`✅ 找到 ChromaDB CLI: ${cliPath}`)
+        this.projectRoot = projectDir
+        console.log(`✅ Found ChromaDB CLI: ${cliPath}`)
+        console.log(`📁 Project root: ${projectDir}`)
       } else {
         throw new Error(`ChromaDB CLI not found at ${cliPath}`)
       }
     } catch (error) {
-      throw new Error(`Failed to locate ChromaDB CLI: ${error instanceof Error ? error.message : String(error)}`)
+      throw new Error(
+        `Failed to locate ChromaDB CLI: ${error instanceof Error ? error.message : String(error)}`
+      )
     }
   }
 
@@ -104,7 +117,7 @@ export class ChromaServerManager {
     console.log('🚀 启动 ChromaDB 服务器...')
 
     // 分配端口
-    const port = config.port || await findAvailablePort()
+    const port = config.port || (await findAvailablePort())
 
     // 创建临时数据目录
     const tempDirName = config.tempDirName || `chroma_temp_${Date.now()}`
@@ -115,43 +128,39 @@ export class ChromaServerManager {
     }
 
     // 构建 chroma run 命令
-    const args = [
-      'run',
-      '--path', dataPath,
-      '--port', port.toString(),
-      '--host', 'localhost'
-    ]
+    const args = ['run', '--path', dataPath, '--port', port.toString(), '--host', 'localhost']
 
     console.log(`🔧 启动命令: chroma ${args.join(' ')}`)
     console.log(`📁 数据目录: ${dataPath}`)
     console.log(`🌐 服务端口: ${port}`)
 
-    // 启动进程
-    const process = spawn('node', [this.chromaCliPath!, ...args], {
+    // 启动进程 - 从项目根目录启动以确保能找到依赖
+    const chromaProcess = spawn('node', [this.chromaCliPath!, ...args], {
       stdio: 'pipe',
-      detached: false
+      detached: false,
+      cwd: this.projectRoot || process.cwd(),
     })
 
     // 处理进程输出
-    process.stdout?.on('data', (data) => {
+    chromaProcess.stdout?.on('data', (data: Buffer) => {
       const output = data.toString().trim()
       if (output) {
         console.log(`📊 ChromaDB: ${output}`)
       }
     })
 
-    process.stderr?.on('data', (data) => {
+    chromaProcess.stderr?.on('data', (data: Buffer) => {
       const output = data.toString().trim()
       if (output && !output.includes('WARN')) {
         console.log(`⚠️  ChromaDB: ${output}`)
       }
     })
 
-    process.on('error', (error) => {
+    chromaProcess.on('error', (error: Error) => {
       console.log('❌ ChromaDB 进程错误:', error.message)
     })
 
-    process.on('exit', (code, signal) => {
+    chromaProcess.on('exit', (code: number | null, signal: string | null) => {
       console.log(`🔚 ChromaDB 进程退出 (code: ${code}, signal: ${signal})`)
       this.servers.delete(serverId)
     })
@@ -163,7 +172,7 @@ export class ChromaServerManager {
     const isStarted = await waitForService(port, startupTimeout)
 
     if (!isStarted) {
-      process.kill('SIGTERM')
+      chromaProcess.kill('SIGTERM')
       throw new Error(`ChromaDB 服务器启动超时 (端口: ${port})`)
     }
 
@@ -173,8 +182,8 @@ export class ChromaServerManager {
     const serverInfo: ChromaServerInfo = {
       port,
       dataPath,
-      process,
-      config
+      process: chromaProcess,
+      config,
     }
 
     this.servers.set(serverId, serverInfo)
@@ -219,7 +228,10 @@ export class ChromaServerManager {
           rmSync(serverInfo.dataPath, { recursive: true, force: true })
           console.log(`🗑️  已清理临时目录: ${serverInfo.dataPath}`)
         } catch (error) {
-          console.log(`⚠️  清理临时目录失败:`, error instanceof Error ? error.message : String(error))
+          console.log(
+            `⚠️  清理临时目录失败:`,
+            error instanceof Error ? error.message : String(error)
+          )
         }
       }
 
@@ -227,7 +239,10 @@ export class ChromaServerManager {
       this.servers.delete(serverId)
       console.log('✅ ChromaDB 服务器已停止')
     } catch (error) {
-      console.log('❌ 停止 ChromaDB 服务器失败:', error instanceof Error ? error.message : String(error))
+      console.log(
+        '❌ 停止 ChromaDB 服务器失败:',
+        error instanceof Error ? error.message : String(error)
+      )
       throw error
     }
   }
@@ -258,7 +273,10 @@ export class ChromaServerManager {
       try {
         await this.stopServer(serverInfo.config)
       } catch (error) {
-        console.log(`❌ 停止服务器 ${serverId} 失败:`, error instanceof Error ? error.message : String(error))
+        console.log(
+          `❌ 停止服务器 ${serverId} 失败:`,
+          error instanceof Error ? error.message : String(error)
+        )
       }
     })
 

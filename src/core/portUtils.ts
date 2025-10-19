@@ -5,6 +5,7 @@
 
 import { createServer } from 'node:net'
 import { promisify } from 'node:util'
+import { createRequire } from 'node:module'
 
 /**
  * 查找可用的端口
@@ -70,10 +71,7 @@ export async function isPortAvailable(port: number): Promise<boolean> {
  * @param timeout 超时时间（毫秒）
  * @returns 服务是否成功启动
  */
-export async function waitForService(
-  port: number,
-  timeout: number = 10000
-): Promise<boolean> {
+export async function waitForService(port: number, timeout: number = 10000): Promise<boolean> {
   return new Promise((resolve) => {
     const startTime = Date.now()
 
@@ -83,6 +81,7 @@ export async function waitForService(
         return
       }
 
+      const require = createRequire(import.meta.url)
       const socket = new (require('net').Socket)()
 
       socket.setTimeout(1000)
