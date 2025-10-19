@@ -48,24 +48,23 @@
 
 **具体流程**：
 
-- 首先，本项目是一个nodejs项目，目的是提供“可靠工具”（可以理解成CLI工具，下文简称 cli）
-- 如果有源代码，那么可以用npmlink的方式来挂载，方便本地测试。
-- 本项目可以通过 npx 来下载运行“可靠工具”
+- 首先，本项目是一个nodejs项目，目的是提供“可靠工具”（可以理解成CLI工具，下文简称 cli）。
+- 如果有源代码，那么可以用 `npm link` 的方式来挂载，方便本地测试。
+- 本项目可以通过 `npm install -g skill-creator` 来下载运行“可靠工具”。
 
-1. 首先使用`cli init`来往目录`~/.claude/agents/`来安装对应的subagents(覆盖写入`~/.claude/agents/skill-creator.md`文件)
-2. 接下来，我们需要让subagents来按照以下的流程来进行工作：
-   1. 根据用户的需求，通过`cli search`来搜索可能的包，如果存在混淆，那么就需要列出可能的列表，询问用户到底是哪个npm包
-      1. 实现上，可以使用 `npm search "KEY WORDS"` 来进行搜索
-   2. 如果用户没有明确的说明，就需要询问用户到底是要在当前项目文件夹（`./.claude/skills/`）或者用户目录(`~/.claude/skills`) 去创建 skill
-   3. 参考`doc-downloader.md`的文档标准，创建对应的 skill-name。这里可以通过`cli get-name @package/name`来直接获得skill-name：
-      1. 通过执行 `npm info @package/name version` 来获得版本号
-      2. 然后根据规则拼接出 skill-name
-   4. 创建出 `.claude/skills/{skill-name}` 文件夹后。还需要继续运行可靠工具，这里需要让 subagents 去调用 mcp-context7 来搜索相关的文档，具体参考`doc-downloader.md`
-   5. 在Context7中找到project-id后，我们就要调用 `cli --dir=skill_dir download-context7 project-id`去下载的文档，并根据规范进行切分。存放到`{skill_dir}/assets/references/context7/*.md`
-      > 注意，如果正确，这里面一定是数百个脚本生成的文件，绝对不是AI自己填充的文件。
-   6. 有了md文件，我们就可以通过`cli --dir=skill_dir search "Key Words"`来搜索文档。这时候的流程就是上文提到的，自动建立索引的工作
-   7. 我们还要让subagents知道，以后可以用`cli --dir=skill_dir add-user-skill`来添加user文档
-   8. 我们还要让subagents知道，以后可以用`cli --dir=skill_dir download-context7 project-id --force`强制更新文档
+1. **安装 subagent (可选)**:
+   如果需要，可以使用 `cli init` 来将 `templates/skill-creator.md` 安装为 `~/.claude/agents/` 目录下的 subagent。
+
+2. **Subagent 工作流**:
+   接下来，subagent 将严格遵循 `skill-creator.md` 中定义的流程来工作，该流程的核心步骤如下：
+   1. **搜索包**: 根据用户需求，通过 `cli search "KEYWORDS"` 来搜索 npm 包。如果结果不唯一，AI 需要向用户确认。
+   2. **获取包信息**: 针对选定的包，运行 `cli get-info @package/name`。这将返回一个包含 `skill_dir_name`, `name`, `version`, `homepage`, `repo` 等信息的 JSON 对象。
+   3. **创建技能**: AI 根据 `get-info` 的结果，并与用户确认存储位置（项目内或用户目录）后，调用 `cli create-cc-skill <skill_dir_name> --package-name <name> ...` 来创建技能目录和基础文件。
+   4. **获取文档 ID**: AI 调用 `mcp-context7` 工具来搜索并根据 `skill-creator.md` 中定义的“评判标准”（Code Snippets 数量最多）来确定唯一的 `project-id`。
+   5. **下载文档**: 使用 `cli download-context7 <project_id> --pwd <skill_path>` 命令来下载文档。`<skill_path>` 是上一步创建技能时返回的完整路径。文档将被自动切分并存放到 `{skill_path}/assets/references/context7/` 目录下。
+   6. **添加用户知识**: subagent 可以通过 `cli add-skill --pwd <skill_path> --title "..." --content "..."` 来动态添加用户自定义的知识点。
+   7. **搜索知识**: subagent 可以使用 `cli search-skill --pwd <skill_path> "query"` 来在技能的知识库中进行搜索。
+   8. **强制更新**: 可以通过添加 `--force` 标志来强制更新文档，例如 `cli download-context7 <project_id> --pwd <skill_path> --force`。
 
 ---
 

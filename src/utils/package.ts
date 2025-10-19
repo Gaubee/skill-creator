@@ -35,6 +35,34 @@ export class PackageUtils {
   }
 
   /**
+   * Get full package info from npm registry for the latest version
+   */
+  static async getPackageInfo(packageName: string): Promise<{
+    name: string
+    version: string
+    description: string
+    homepage?: string
+    repository?: { type: string; url: string }
+    [key: string]: any
+  } | null> {
+    try {
+      const response = await fetch(`https://registry.npmjs.org/${packageName}`)
+      if (!response.ok) return null
+
+      const data = await response.json()
+      const latestVersionTag = data['dist-tags']?.latest
+      if (!latestVersionTag) return null
+
+      const latestVersionInfo = data.versions?.[latestVersionTag]
+      if (!latestVersionInfo) return null
+
+      return latestVersionInfo
+    } catch {
+      return null
+    }
+  }
+
+  /**
    * Format version according to doc-downloader rules
    */
   static formatVersion(version: string): string {
@@ -175,7 +203,7 @@ export class PackageUtils {
     // Extract keywords from input
     const keywords = input
       .split(/[\s-]+/)
-      .filter(word => word.length > 2)
+      .filter((word) => word.length > 2)
       .slice(0, 3)
 
     if (keywords.length === 0) {
@@ -189,9 +217,7 @@ export class PackageUtils {
   /**
    * Select package from multiple options
    */
-  static async selectPackage(
-    input: string
-  ): Promise<{ name: string; version: string } | null> {
+  static async selectPackage(input: string): Promise<{ name: string; version: string } | null> {
     const suggestions = await PackageUtils.suggestPackages(input, { limit: 5 })
 
     if (suggestions.length === 0) {
@@ -206,9 +232,7 @@ export class PackageUtils {
 
     // Multiple options found - would need interactive selection in CLI
     // For now, return the highest scored package
-    const best = suggestions.reduce((prev, curr) =>
-      curr.score > prev.score ? curr : prev
-    )
+    const best = suggestions.reduce((prev, curr) => (curr.score > prev.score ? curr : prev))
 
     const version = await PackageUtils.getPackageVersion(best.name)
     return { name: best.name, version: version || best.version }

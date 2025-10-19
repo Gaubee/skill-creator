@@ -69,4 +69,21 @@ describe('PackageUtils', () => {
       expect(PackageUtils.validatePackageName('invalid name')).toBe(false)
     })
   })
+
+  describe('getPackageInfo', () => {
+    it('should return full package info for a known package', async () => {
+      const info = await PackageUtils.getPackageInfo('zod')
+      expect(info).not.toBeNull()
+      expect(info.name).toBe('zod')
+      expect(info.version).toBeDefined()
+      expect(info.description).toBeDefined()
+      expect(info.homepage).toBeDefined()
+      expect(info.repository).toBeDefined()
+    })
+
+    it('should return null for an unknown package', async () => {
+      const info = await PackageUtils.getPackageInfo('non-existent-package-12345abc')
+      expect(info).toBeNull()
+    })
+  })
 })
