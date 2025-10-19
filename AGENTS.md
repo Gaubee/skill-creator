@@ -9,8 +9,12 @@
 
 升级成一个 `skill-creater` 的 subagents：
 
-1. `skill-creater`
-   现在更加可靠，直接使用预设好的脚本程序去进行执行下载，而不再是让 AI 自己去临时执行脚本去做下载。
+1. **skill-creator**
+   - 现在更加可靠，直接使用预设好的脚本程序去进行执行下载，而不再是让 AI 自己去临时执行脚本去做下载
+   - 使用 TypeScript + ESM 模块，提供完整的类型安全
+   - 集成了 ChromaDB 向量搜索，提供智能文档检索能力
+   - **新增 --force 选项**：支持强制覆盖已存在的技能文件
+   - **默认非交互模式**：命令默认非交互执行，通过 --interactive 启用交互
 1. 它不再是产生在 `.claude/references`
    目录下， 而是基于 claude-code-skills 的规范，产生在当前项目文件夹（`./.claude/skills/`）或者用户目录(`~/.claude/skills`) 下，
 1. 然后请你参考 `skill-creator`
@@ -53,18 +57,18 @@
 - 本项目可以通过 `npm install -g skill-creator` 来下载运行“可靠工具”。
 
 1. **安装 subagent (可选)**:
-   如果需要，可以使用 `cli init` 来将 `templates/skill-creator.md` 安装为 `~/.claude/agents/` 目录下的 subagent。
+   如果需要，可以使用 `cli init-cc` 来将 `templates/skill-creator.md` 安装为 `~/.claude/agents/` 目录下的 subagent。
 
 2. **Subagent 工作流**:
    接下来，subagent 将严格遵循 `skill-creator.md` 中定义的流程来工作，该流程的核心步骤如下：
    1. **搜索包**: 根据用户需求，通过 `cli search "KEYWORDS"` 来搜索 npm 包。如果结果不唯一，AI 需要向用户确认。
    2. **获取包信息**: 针对选定的包，运行 `cli get-info @package/name`。这将返回一个包含 `skill_dir_name`, `name`, `version`, `homepage`, `repo` 等信息的 JSON 对象。
-   3. **创建技能**: AI 根据 `get-info` 的结果，并与用户确认存储位置（项目内或用户目录）后，调用 `cli create-cc-skill <skill_dir_name> --package-name <name> ...` 来创建技能目录和基础文件。
+   3. **创建技能**: AI 根据 `get-info` 的结果，确认存储位置后，调用 `cli create-cc-skill --scope [project|user] skill_dir_name` 来创建技能目录和基础文件。
    4. **获取文档 ID**: AI 调用 `mcp-context7` 工具来搜索并根据 `skill-creator.md` 中定义的“评判标准”（Code Snippets 数量最多）来确定唯一的 `project-id`。
-   5. **下载文档**: 使用 `cli download-context7 <project_id> --pwd <skill_path>` 命令来下载文档。`<skill_path>` 是上一步创建技能时返回的完整路径。文档将被自动切分并存放到 `{skill_path}/assets/references/context7/` 目录下。
-   6. **添加用户知识**: subagent 可以通过 `cli add-skill --pwd <skill_path> --title "..." --content "..."` 来动态添加用户自定义的知识点。
-   7. **搜索知识**: subagent 可以使用 `cli search-skill --pwd <skill_path> "query"` 来在技能的知识库中进行搜索。
-   8. **强制更新**: 可以通过添加 `--force` 标志来强制更新文档，例如 `cli download-context7 <project_id> --pwd <skill_path> --force`。
+   5. **下载文档**: 使用 `cli download-context7 --pwd <skill_path> <project_id>` 命令来下载文档。`<skill_path>` 是上一步创建技能时返回的完整路径。文档将被自动切分并存放到 `{skill_path}/assets/references/context7/` 目录下。
+   6. **添加用户知识**: subagent 可以通过 `cli add-skill --pwd <skill_path> --title "标题" --content "内容"` 来动态添加用户自定义的知识点。
+   7. **搜索知识**: subagent 可以使用 `cli search-skill --pwd <skill_path> "查询关键词"` 来在技能的知识库中进行搜索。
+   8. **强制更新文档**: 可以通过添加 `--force` 标志来强制更新 Context7 文档，例如 `skill-creator download-context7 --pwd <skill_path> <project_id> --force`。这会重新下载并覆盖已存在的 Context7 文档文件。
 
 ---
 
