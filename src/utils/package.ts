@@ -13,6 +13,7 @@ export interface SearchResult {
   score: number
   homepage?: string
   repository?: string
+  skill_dir_name?: string
 }
 
 export interface SearchOptions {
@@ -161,6 +162,9 @@ export class PackageUtils {
             score,
             homepage: packageInfo?.homepage,
             repository: packageInfo?.repository?.url,
+            skill_dir_name: packageInfo
+              ? this.createSkillFolderName(packageInfo.name, packageInfo.version)
+              : undefined,
           })
         }
       }
@@ -188,6 +192,7 @@ export class PackageUtils {
         score: 1.0,
         homepage: packageInfo.homepage,
         repository: packageInfo.repository?.url,
+        skill_dir_name: this.createSkillFolderName(packageInfo.name, packageInfo.version),
       }
     } catch {
       return null
