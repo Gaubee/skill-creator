@@ -17,47 +17,45 @@ class MockSearchEngine {
     let results = this.documents
 
     if (where?.source) {
-      results = results.filter(doc => doc.source === where.source)
+      results = results.filter((doc) => doc.source === where.source)
     }
 
     // Simple mock search with realistic scores
     const queryLower = query.toLowerCase()
-    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 1) // Filter out very short words
+    const queryWords = queryLower.split(/\s+/).filter((w) => w.length > 1) // Filter out very short words
 
     // Filter by checking if any query words match
-    const filtered = results.filter(doc => {
+    const filtered = results.filter((doc) => {
       const titleLower = doc.title.toLowerCase()
       const contentLower = doc.content.toLowerCase()
 
       // Check if any significant query words match
-      return queryWords.some(word =>
-        titleLower.includes(word) || contentLower.includes(word)
-      )
+      return queryWords.some((word) => titleLower.includes(word) || contentLower.includes(word))
     })
 
     // Calculate scores based on content similarity
     return filtered
-      .map(doc => {
+      .map((doc) => {
         // Calculate a simple similarity score
         const titleWords = doc.title.toLowerCase().split(/\s+/)
         const contentWords = doc.content.toLowerCase().split(/\s+/)
 
         // Title matching score
-        const titleMatches = queryWords.filter(word => titleWords.includes(word)).length
+        const titleMatches = queryWords.filter((word) => titleWords.includes(word)).length
         const titleScore = titleMatches / Math.max(titleWords.length, 1)
 
         // Content matching score
-        const contentMatches = queryWords.filter(word => contentWords.includes(word)).length
+        const contentMatches = queryWords.filter((word) => contentWords.includes(word)).length
         const contentScore = contentMatches / Math.max(queryWords.length, 1)
 
         // Combined score with title weight
-        const combinedScore = (titleScore * 0.3 + contentScore * 0.7)
+        const combinedScore = titleScore * 0.3 + contentScore * 0.7
         const score = Math.min(combinedScore, 1.0)
 
         return {
           ...doc,
           score,
-          file_path: `${doc.source}/${doc.filename}` // Add file_path for ContentManager
+          file_path: `${doc.source}/${doc.filename}`, // Add file_path for ContentManager
         }
       })
       .sort((a, b) => b.score - a.score)
@@ -146,13 +144,13 @@ describe('ContentManager', () => {
 
       expect(content.length).toBe(2)
       // Check both files are present regardless of order
-      const filenames = content.map(c => c.filename)
+      const filenames = content.map((c) => c.filename)
       expect(filenames).toContain('user-doc.md')
       expect(filenames).toContain('api-doc.md')
 
       // Check sources are correct
-      const userDoc = content.find(c => c.filename === 'user-doc.md')
-      const apiDoc = content.find(c => c.filename === 'api-doc.md')
+      const userDoc = content.find((c) => c.filename === 'user-doc.md')
+      const apiDoc = content.find((c) => c.filename === 'api-doc.md')
       expect(userDoc?.source).toBe('user')
       expect(apiDoc?.source).toBe('context7')
     })
@@ -174,7 +172,7 @@ describe('ContentManager', () => {
       })
 
       expect(result.added).toBe(true)
-      expect(result.filePath).toContain('Test_Document')
+      expect(result.filePath).toContain('test_document')
       expect(result.message).toContain('Created new content')
 
       // Check file exists
@@ -190,22 +188,27 @@ describe('ContentManager', () => {
       // Add initial content
       await contentManager.addUserContent({
         title: 'React Guide',
-        content: '# React Guide\nReact is a UI library for building user interfaces with components and state management.',
+        content:
+          '# React Guide\nReact is a UI library for building user interfaces with components and state management.',
       })
 
       // Add the document to search engine index
-      await mockSearchEngine.addDocuments([{
-        id: 'react-guide',
-        title: 'React Guide',
-        content: 'React is a UI library for building user interfaces with components and state management.',
-        source: 'user',
-        filename: 'React_Guide.md'
-      }])
+      await mockSearchEngine.addDocuments([
+        {
+          id: 'react-guide',
+          title: 'React Guide',
+          content:
+            'React is a UI library for building user interfaces with components and state management.',
+          source: 'user',
+          filename: 'React_Guide.md',
+        },
+      ])
 
       // Try to add very similar content
       const result = await contentManager.addUserContent({
         title: 'React Tutorial',
-        content: '# React Tutorial\nReact is a UI library for building user interfaces with components and state management.',
+        content:
+          '# React Tutorial\nReact is a UI library for building user interfaces with components and state management.',
       })
 
       // Should find similar content and not add
@@ -223,18 +226,21 @@ describe('ContentManager', () => {
       })
 
       // Add the document to search engine index
-      await mockSearchEngine.addDocuments([{
-        id: 'react-guide',
-        title: 'React Guide',
-        content: 'React is a UI library.',
-        source: 'user',
-        filename: 'React_Guide.md'
-      }])
+      await mockSearchEngine.addDocuments([
+        {
+          id: 'react-guide',
+          title: 'React Guide',
+          content: 'React is a UI library.',
+          source: 'user',
+          filename: 'React_Guide.md',
+        },
+      ])
 
       // Add enhanced content (much longer to trigger update)
       const result = await contentManager.addUserContent({
         title: 'React Guide',
-        content: '# React Guide\n\nReact is a UI library for building user interfaces with a component-based architecture. It allows developers to create large web applications that can change data without reloading the page. It aims to provide speed, simplicity, and scalability. React can be used with a combination of other libraries or frameworks to build complex applications. The library maintains a virtual DOM that optimizes rendering performance. Components can be functional or class-based, with hooks providing state management in functional components. React follows a unidirectional data flow pattern which makes the application more predictable and easier to debug. The ecosystem includes React Router for navigation, Redux for state management, and numerous other libraries that complement the core functionality.',
+        content:
+          '# React Guide\n\nReact is a UI library for building user interfaces with a component-based architecture. It allows developers to create large web applications that can change data without reloading the page. It aims to provide speed, simplicity, and scalability. React can be used with a combination of other libraries or frameworks to build complex applications. The library maintains a virtual DOM that optimizes rendering performance. Components can be functional or class-based, with hooks providing state management in functional components. React follows a unidirectional data flow pattern which makes the application more predictable and easier to debug. The ecosystem includes React Router for navigation, Redux for state management, and numerous other libraries that complement the core functionality.',
         autoUpdate: true,
       })
 
@@ -256,7 +262,7 @@ describe('ContentManager', () => {
       })
 
       expect(result.added).toBe(true)
-      expect(result.filePath).toContain('React_Guide')
+      expect(result.filePath).toContain('react_guide')
     })
 
     it('should create unique file names', async () => {
@@ -265,15 +271,49 @@ describe('ContentManager', () => {
         content: 'First document',
       })
 
+      // Add a second content with same title but no force to create unique file name
       const result2 = await contentManager.addUserContent({
-        title: 'Same Title',
+        title: 'Same Title Different',
+        content: 'Second document',
+      })
+
+      expect(result1.filePath).not.toBe(result2.filePath)
+      expect(result1.filePath).toContain('same_title')
+      expect(result2.filePath).toContain('same_title_different')
+    })
+
+    it('should force overwrite existing file', async () => {
+      const result1 = await contentManager.addUserContent({
+        title: 'Force Test',
+        content: 'First document',
+      })
+
+      const result2 = await contentManager.addUserContent({
+        title: 'Force Test',
         content: 'Second document',
         force: true,
       })
 
-      expect(result1.filePath).not.toBe(result2.filePath)
-      expect(result1.filePath).toContain('Same_Title')
-      expect(result2.filePath).toContain('Same_Title')
+      expect(result1.filePath).toBe(result2.filePath)
+      expect(result1.filePath).toContain('force_test')
+      expect(result2.message).toContain('Overwrote existing content')
+    })
+
+    it('should force append to existing file', async () => {
+      const result1 = await contentManager.addUserContent({
+        title: 'Append Test',
+        content: 'First document',
+      })
+
+      const result2 = await contentManager.addUserContent({
+        title: 'Append Test',
+        content: 'Second document',
+        forceAppend: true,
+      })
+
+      expect(result1.filePath).toBe(result2.filePath)
+      expect(result1.filePath).toContain('append_test')
+      expect(result2.message).toContain('Appended content to existing file')
     })
   })
 
@@ -282,7 +322,10 @@ describe('ContentManager', () => {
       // Mock successful download with longer content
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve('# API Documentation\n\nThis is the API documentation with enough content to be processed. It includes detailed information about the API endpoints, parameters, and usage examples. The content is comprehensive enough to pass the minimum length requirements for document slicing.'),
+        text: () =>
+          Promise.resolve(
+            '# API Documentation\n\nThis is the API documentation with enough content to be processed. It includes detailed information about the API endpoints, parameters, and usage examples. The content is comprehensive enough to pass the minimum length requirements for document slicing.'
+          ),
       })
 
       const result = await contentManager.updateFromContext7('/api/docs')

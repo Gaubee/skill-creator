@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { rmSync, existsSync, readFileSync, readdirSync } from 'node:fs'
+import { rmSync, existsSync, readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { execSync } from 'node:child_process'
 import { createTempDir, cleanupTempDir } from '../test-utils.js'
@@ -39,19 +39,20 @@ describe('Skill Creation Integration Tests', () => {
       const description = 'Zod is a TypeScript-first schema declaration and validation library.' // Mock description as it can be null
       const skillDir = join(tempDir, '.claude', 'skills', skill_dir_name)
 
-      // 3. Create the skill
+      // 3. Create skill using new command format: skill-creator create-cc-skill --scope [project|user] skill_dir_name
       const createCommand = [
         cliCmd,
         'create-cc-skill',
+        '--scope',
+        'project',
         `"${skill_dir_name}"`,
-        `--package-name "${packageName}"`,
-        `--package-version "${version}"`,
-        `--description "${description}"`,
-        '--scope project',
       ].join(' ')
 
       // The create command needs to run from within the tempDir to pick up the project scope
-      const createOutput = execSync(createCommand, { encoding: 'utf-8', cwd: tempDir })
+      const createOutput = execSync(createCommand, {
+        encoding: 'utf-8',
+        cwd: tempDir,
+      })
       expect(createOutput).toContain('✅ Skill created successfully:')
       expect(existsSync(skillDir)).toBe(true)
 
@@ -76,13 +77,18 @@ describe('Skill Creation Integration Tests', () => {
         'config.json',
         'SKILL.md',
         'package.json',
-        'scripts/search.js',
-        'scripts/add.js',
-        'scripts/build_index.js',
+        'assets/references/context7/.gitkeep',
+        'assets/references/user/.gitkeep',
+        'assets/chroma_db/.gitkeep',
+        'assets/logs/.gitkeep',
       ]
+
       expectedFiles.forEach((file) => {
         expect(existsSync(join(skillDir, file))).toBe(true)
       })
+
+      // scripts folder should not exist
+      expect(existsSync(join(skillDir, 'scripts'))).toBe(false)
     })
   })
 
@@ -95,6 +101,71 @@ describe('Skill Creation Integration Tests', () => {
     it('should fail create-cc-skill without required options', () => {
       const command = `node ${process.cwd()}/dist/cli.js create-cc-skill my-skill`
       expect(() => execSync(command, { encoding: 'utf-8' })).toThrow()
+    })
+  })
+
+  describe('Force Option', () => {
+    it('should fail when skill directory exists without force', () => {
+      const tempDir = createTempDir('force-test-')
+      const skillDir = join(tempDir, '.claude', 'skills', 'test-force-skill@1')
+
+      // Create an existing skill directory with some content
+      mkdirSync(join(skillDir), { recursive: true })
+      writeFileSync(join(skillDir, 'existing-file.txt'), 'existing content')
+
+      const command = `node ${process.cwd()}/dist/cli.js create-cc-skill --scope project test-force-skill`
+
+      expect(() => {
+        execSync(command, { encoding: 'utf-8', cwd: tempDir })
+      }).toThrow('Skill directory already exists and is not empty')
+
+      cleanupTempDir(tempDir)
+    })
+
+    it('should succeed when skill directory exists with force option', () => {
+      const tempDir = createTempDir('force-test-')
+      const skillDir = join(tempDir, '.claude', 'skills', 'test-force-skill@1')
+
+      // Create an existing skill directory with some content
+      mkdirSync(join(skillDir), { recursive: true })
+      writeFileSync(join(skillDir, 'existing-file.txt'), 'existing content')
+
+      const command = `node ${process.cwd()}/dist/cli.js create-cc-skill --scope project --force test-force-skill`
+      const output = execSync(command, { encoding: 'utf-8', cwd: tempDir })
+
+      expect(output).toContain('⚠️  Skill directory exists, forcing overwrite')
+      expect(output).toContain('✅ Skill created successfully')
+      expect(existsSync(join(skillDir, 'config.json'))).toBe(true)
+      expect(existsSync(join(skillDir, 'SKILL.md'))).toBe(true)
+      expect(existsSync(join(skillDir, 'package.json'))).toBe(true)
+      // The existing file should still exist (we only overwrite our files)
+      expect(existsSync(join(skillDir, 'existing-file.txt'))).toBe(true)
+
+      cleanupTempDir(tempDir)
+    })
+  })
+
+  describe('init-cc Command', () => {
+    it('should install skill-creator as subagent', () => {
+      const tempDir = createTempDir('init-test-')
+      const agentsDir = join(tempDir, '.claude', 'agents')
+      const skillCreatorDir = join(agentsDir, 'skill-creator')
+
+      // Mock the home directory to use our temp directory
+      const originalEnv = process.env.HOME
+      process.env.HOME = tempDir
+
+      const command = `node ${process.cwd()}/dist/cli.js init-cc`
+      const output = execSync(command, { encoding: 'utf-8' })
+
+      expect(output).toContain('✅ Skill-creator subagent installed successfully!')
+      expect(existsSync(skillCreatorDir)).toBe(true)
+      expect(existsSync(join(skillCreatorDir, 'manifest.json'))).toBe(true)
+
+      // Restore original HOME
+      process.env.HOME = originalEnv
+
+      cleanupTempDir(tempDir)
     })
   })
 })

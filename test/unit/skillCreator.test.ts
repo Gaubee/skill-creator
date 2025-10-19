@@ -36,8 +36,9 @@ describe('SkillCreator', () => {
       expect(existsSync(join(result.skillPath!, 'config.json'))).toBe(true)
       expect(existsSync(join(result.skillPath!, 'SKILL.md'))).toBe(true)
       expect(existsSync(join(result.skillPath!, 'package.json'))).toBe(true)
-      expect(existsSync(join(result.skillPath!, 'scripts'))).toBe(true)
       expect(existsSync(join(result.skillPath!, 'assets'))).toBe(true)
+      // scripts folder should not exist
+      expect(existsSync(join(result.skillPath!, 'scripts'))).toBe(false)
     })
 
     it('should create skill with custom options', async () => {
@@ -90,12 +91,12 @@ describe('SkillCreator', () => {
       const options = {
         packageName: 'test-package',
         path: tempDir,
-        version: '1.0.0',  // Specify version to avoid npm lookup
+        version: '1.0.0', // Specify version to avoid npm lookup
       }
 
       // Calculate the expected skill folder name
       const { PackageUtils } = await import('../../src/utils/package.js')
-      const expectedSkillName = PackageUtils.createSkillFolderName('test-package', '1.0.0')  // Should be 'test-package@1'
+      const expectedSkillName = PackageUtils.createSkillFolderName('test-package', '1.0.0') // Should be 'test-package@1'
       const skillDir = join(tempDir, expectedSkillName)
 
       // Create the directory with a file
@@ -119,43 +120,31 @@ describe('SkillCreator', () => {
 
       // Check directory structure
       const expectedDirs = [
-        'scripts',
         'assets/references/context7',
         'assets/references/user',
         'assets/chroma_db',
         'assets/logs',
       ]
 
-      expectedDirs.forEach(dir => {
+      expectedDirs.forEach((dir) => {
         expect(existsSync(join(skillDir, dir))).toBe(true)
       })
+
+      // scripts folder should not exist
+      expect(existsSync(join(skillDir, 'scripts'))).toBe(false)
     })
 
-    it('should create executable scripts', async () => {
+    it('should not create scripts folder', async () => {
       const options = {
-        packageName: 'test-scripts',
+        packageName: 'test-no-scripts',
         path: tempDir,
       }
 
       const result = await skillCreator.createSkill(options)
       const scriptsDir = join(result.skillPath!, 'scripts')
 
-      const expectedScripts = [
-        'search.js',
-        'add.js',
-        'update_context7.js',
-        'build_index.js',
-        'list_content.js',
-      ]
-
-      expectedScripts.forEach(script => {
-        const scriptPath = join(scriptsDir, script)
-        expect(existsSync(scriptPath)).toBe(true)
-
-        // Check if file is executable (on Unix systems)
-        const stats = require('node:fs').statSync(scriptPath)
-        // Note: mode might not be reliable on all systems
-      })
+      // scripts folder should not exist
+      expect(existsSync(scriptsDir)).toBe(false)
     })
 
     it('should create proper SKILL.md content', async () => {
@@ -175,7 +164,17 @@ describe('SkillCreator', () => {
       expect(content).toContain('Documentation Skill')
       expect(content).toContain('## Features')
       expect(content).toContain('## Usage')
-      expect(content).toContain('node scripts/search.js')
+      // 验证包含绝对路径 - 应该以 / 开头的完整路径
+      expect(content).toMatch(
+        /skill-creator (search-skill --pwd "\/.*"|add-skill --pwd "\/.*"|download-context7 --pwd "\/.*")/
+      ) // 匹配新的命令格式
+      expect(content).toMatch(/search-skill --pwd ".*" "your search query"/)
+      expect(content).toMatch(
+        /add-skill --pwd ".*" --title "content title" --content "your content"/
+      )
+      expect(content).toContain('download-context7')
+      // 确保不是示例路径
+      expect(content).not.toContain('/path/to/your/skill')
     })
 
     it('should create proper package.json', async () => {
@@ -190,9 +189,8 @@ describe('SkillCreator', () => {
 
       expect(packageJson.name).toContain('test-pkg')
       expect(packageJson.type).toBe('module')
-      expect(packageJson.scripts).toBeDefined()
-      expect(packageJson.scripts.search).toBe('node scripts/search.js')
-      expect(packageJson.scripts.add).toBe('node scripts/add.js')
+      // scripts should not exist
+      expect(packageJson.scripts).toBeUndefined()
       expect(packageJson.dependencies).toBeDefined()
       expect(packageJson.dependencies.chromadb).toBeDefined()
     })
@@ -264,6 +262,31 @@ describe('SkillCreator', () => {
       if (!result.created) {
         expect(result.message).toContain('Failed to create skill')
       }
+    })
+
+    it('should succeed with force option when directory exists', async () => {
+      const options = {
+        packageName: 'test-force-unique',
+        path: tempDir,
+        force: true,
+        version: '1.0.0',
+      }
+
+      // Create an existing directory with files
+      const expectedSkillName = 'test-force-unique@1'
+      const skillDir = join(tempDir, expectedSkillName)
+      mkdirSync(skillDir, { recursive: true })
+      writeFileSync(join(skillDir, 'existing.txt'), 'existing content')
+
+      const result = await skillCreator.createSkill(options)
+
+      expect(result.created).toBe(true)
+      expect(result.skillPath).toBe(skillDir)
+      expect(existsSync(join(skillDir, 'config.json'))).toBe(true)
+      expect(existsSync(join(skillDir, 'SKILL.md'))).toBe(true)
+      expect(existsSync(join(skillDir, 'package.json'))).toBe(true)
+      // The existing file should still exist
+      expect(existsSync(join(skillDir, 'existing.txt'))).toBe(true)
     })
   })
 })
