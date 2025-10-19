@@ -118,9 +118,29 @@ program
       skill_dir_name: skillDirName,
       name: packageInfo.name,
       version: version,
-      homepage: packageInfo.homepage || '',
-      repo: packageInfo.repository?.url || '',
       description: packageInfo.description || '',
+      keywords: packageInfo.keywords || [],
+      license: packageInfo.license || '',
+      author: packageInfo.author || '',
+      maintainers: packageInfo.maintainers || [],
+      homepage: packageInfo.homepage || '',
+      repository: {
+        url: packageInfo.repository?.url || '',
+        type: packageInfo.repository?.type || '',
+      },
+      bugs: {
+        url: packageInfo.bugs?.url || '',
+      },
+      funding: packageInfo.funding || '',
+      scripts: packageInfo.scripts || {},
+      engines: packageInfo.engines || {},
+      types: packageInfo.types || '',
+      dependencies: packageInfo.dependencies || {},
+      devDependencies: packageInfo.devDependencies || {},
+      time: {
+        created: packageInfo.time?.created || '',
+        modified: packageInfo.time?.modified || '',
+      },
     }
 
     console.log(JSON.stringify(result, null, 2))
