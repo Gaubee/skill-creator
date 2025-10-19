@@ -25,9 +25,11 @@
   "license": "MIT",
   "dependencies": {
     "@chroma-core/default-embed": "^0.1.8",
+    "@leeoniya/ufuzzy": "^1.0.19",
     "chromadb": "^1.8.1",
     "commander": "^12.1.0",
     "dedent": "^1.5.3",
+    "fuse.js": "^7.1.0",
     "glob": "^11.0.0",
     "gradient-string": "^3.0.0",
     "inquirer": "^10.2.2",
