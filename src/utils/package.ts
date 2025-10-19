@@ -11,6 +11,8 @@ export interface SearchResult {
   date: string
   publisher: string
   score: number
+  homepage?: string
+  repository?: string
 }
 
 export interface SearchOptions {
@@ -147,6 +149,9 @@ export class PackageUtils {
       for (const pkg of data.objects || []) {
         const score = pkg.score?.detail?.popularity || 0
         if (score >= minScore) {
+          // Get detailed package information including homepage
+          const packageInfo = await this.getPackageInfo(pkg.package.name)
+
           results.push({
             name: pkg.package.name,
             description: pkg.package.description || '',
@@ -154,6 +159,8 @@ export class PackageUtils {
             date: pkg.package.date,
             publisher: pkg.package.publisher?.username || 'unknown',
             score,
+            homepage: packageInfo?.homepage,
+            repository: packageInfo?.repository?.url,
           })
         }
       }
@@ -169,18 +176,18 @@ export class PackageUtils {
    */
   static async findExactPackage(packageName: string): Promise<SearchResult | null> {
     try {
-      const response = await fetch(`https://registry.npmjs.org/${packageName}/latest`)
-      if (!response.ok) return null
-
-      const data = await response.json()
+      const packageInfo = await this.getPackageInfo(packageName)
+      if (!packageInfo) return null
 
       return {
-        name: data.name,
-        description: data.description || '',
-        version: data.version,
-        date: data.time?.modified || new Date().toISOString(),
-        publisher: data.publisher?.username || 'unknown',
+        name: packageInfo.name,
+        description: packageInfo.description || '',
+        version: packageInfo.version,
+        date: packageInfo.time?.modified || new Date().toISOString(),
+        publisher: packageInfo.publisher?.username || 'unknown',
         score: 1.0,
+        homepage: packageInfo.homepage,
+        repository: packageInfo.repository?.url,
       }
     } catch {
       return null
