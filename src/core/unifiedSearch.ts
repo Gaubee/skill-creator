@@ -1,35 +1,42 @@
 /**
- * Unified search engine that can use either ChromaDB or simple search
+ * Unified search engine that uses adapter pattern for different search implementations
+ *
+ * This implementation follows the adapter pattern to provide a unified interface
+ * for different search engines while maintaining type safety and extensibility.
  */
 
 import { join } from 'node:path'
 import type { SearchResult } from '../types/index.js'
-import { ChromaSearchEngine } from './chromaSearch.js'
+import { ChromaSearchAdapter } from './chromaSearchAdapter.js'
 import { FuzzySearchAdapter } from './fuzzySearchAdapter.js'
 
 export interface UnifiedSearchOptions {
   type: 'chroma' | 'fuzzy' | 'auto'
-  dbPath: string
+  skillDir: string
   collectionName: string
   referencesDir: string
+  enableChromaFallback?: boolean
+  chromaStartupTimeout?: number
 }
 
 export class UnifiedSearchEngine {
-  private engine: ChromaSearchEngine | FuzzySearchAdapter | null = null
+  private engine: ChromaSearchAdapter | FuzzySearchAdapter | null = null
   private options: UnifiedSearchOptions
 
   constructor(options: UnifiedSearchOptions) {
     this.options = options
   }
 
-  private async getEngine(): Promise<ChromaSearchEngine | FuzzySearchAdapter> {
+  private async getEngine(): Promise<ChromaSearchAdapter | FuzzySearchAdapter> {
     if (!this.engine) {
       const engineType = this.determineEngineType()
 
       if (engineType === 'chroma') {
-        this.engine = new ChromaSearchEngine({
-          dbPath: this.options.dbPath,
+        this.engine = new ChromaSearchAdapter({
+          skillDir: this.options.skillDir,
           collectionName: this.options.collectionName,
+          startupTimeout: this.options.chromaStartupTimeout,
+          enableFallback: this.options.enableChromaFallback,
         })
       } else {
         this.engine = new FuzzySearchAdapter()
@@ -44,11 +51,9 @@ export class UnifiedSearchEngine {
     }
 
     // Auto mode: intelligent selection based on query characteristics
-    // For now, default to fuzzy search as it's more reliable
-    // Future enhancements could include:
-    // - Query length analysis (short queries -> fuzzy, long queries -> chroma)
-    // - Keyword detection (code snippets -> fuzzy, conceptual queries -> chroma)
-    // - Performance metrics and fallback logic
+    // ChromaDB 现在支持按需启动，可以正常使用
+    // Default to fuzzy for reliability, but ChromaDB is available
+    console.log('🤖 自动选择搜索引擎: 使用 fuzzy search（默认策略）')
     return 'fuzzy'
   }
 
@@ -156,11 +161,13 @@ export class UnifiedSearchEngine {
     let results: SearchResult[]
 
     if (engineType === 'chroma') {
-      const chromaEngine = new ChromaSearchEngine({
-        dbPath: this.options.dbPath,
+      const chromaEngine = new ChromaSearchAdapter({
+        skillDir: this.options.skillDir,
         collectionName: this.options.collectionName,
+        startupTimeout: this.options.chromaStartupTimeout,
+        enableFallback: this.options.enableChromaFallback,
       })
-      results = await chromaEngine.search(query, topK, where)
+      results = await chromaEngine.search(query, { topK, where })
     } else {
       const fuzzyEngine = new FuzzySearchAdapter()
       results = await fuzzyEngine.search(query, { topK, where })
@@ -179,8 +186,80 @@ export class UnifiedSearchEngine {
     topK: number = 5,
     where?: Record<string, any>
   ): Promise<SearchResult[]> {
+    // 如果是 auto 模式，先尝试 fuzzy 搜索，结果不佳时自动切换到 chroma
+    if (this.options.type === 'auto') {
+      console.log('🤖 Auto 模式: 先尝试 Fuzzy 搜索...')
+
+      const fuzzyEngine = new FuzzySearchAdapter()
+      const fuzzyResults = await fuzzyEngine.search(query, { topK, where })
+
+      // 评估搜索结果质量
+      const searchQuality = this.evaluateSearchQuality(fuzzyResults)
+      console.log(
+        `📊 Fuzzy 搜索质量评估: ${searchQuality.score.toFixed(2)} (${searchQuality.reason})`
+      )
+
+      // 如果搜索质量不佳，自动切换到 ChromaDB
+      if (searchQuality.score < 0.3) {
+        console.log('🔄 Fuzzy 搜索质量不佳，自动切换到 ChromaDB 搜索...')
+
+        try {
+          const chromaEngine = new ChromaSearchAdapter({
+            skillDir: this.options.skillDir,
+            collectionName: this.options.collectionName,
+            startupTimeout: this.options.chromaStartupTimeout,
+            enableFallback: this.options.enableChromaFallback,
+          })
+
+          const chromaResults = await chromaEngine.search(query, { topK, where })
+          console.log(`✅ ChromaDB 搜索完成，找到 ${chromaResults.length} 个结果`)
+          return chromaResults
+        } catch (error) {
+          console.log(
+            '❌ ChromaDB 搜索失败，返回 Fuzzy 搜索结果:',
+            error instanceof Error ? error.message : String(error)
+          )
+          return fuzzyResults
+        }
+      } else {
+        console.log('✅ Fuzzy 搜索质量良好，直接返回结果')
+        return fuzzyResults
+      }
+    }
+
+    // 非 auto 模式，使用指定的引擎
     const engine = await this.getEngine()
-    return engine.search(query, topK, where)
+    return engine.search(query, { topK, where })
+  }
+
+  /**
+   * 评估搜索结果质量
+   */
+  private evaluateSearchQuality(results: SearchResult[]): { score: number; reason: string } {
+    if (results.length === 0) {
+      return { score: 0, reason: '没有搜索结果' }
+    }
+
+    // 检查最高分
+    const topScore = results[0].score
+    if (topScore < 0.2) {
+      return { score: topScore, reason: '最高分太低' }
+    }
+
+    // 检查结果数量
+    if (results.length < 2) {
+      return { score: 0.25, reason: '结果数量太少' }
+    }
+
+    // 检查平均分
+    const avgScore = results.reduce((sum, result) => sum + result.score, 0) / results.length
+    if (avgScore < 0.3) {
+      return { score: avgScore, reason: '平均分太低' }
+    }
+
+    // 综合评分
+    const qualityScore = topScore * 0.6 + avgScore * 0.4
+    return { score: qualityScore, reason: '搜索质量良好' }
   }
 
   async searchByPriority(query: string, topK: number = 5): Promise<SearchResult[]> {

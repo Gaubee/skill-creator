@@ -95,8 +95,10 @@ export async function createSearchEngine(
 
   return new UnifiedSearchEngine({
     type: searchMode,
+    skillDir: join(process.cwd(), 'assets'),
     referencesDir: join(process.cwd(), 'assets', 'references'),
-    dbPath: join(process.cwd(), 'assets', 'chroma_db'),
     collectionName: `${config.name.replace(/[^a-zA-Z0-9._-]/g, '_')}_docs`,
+    enableChromaFallback: true,
+    chromaStartupTimeout: 15000,
   })
 }
