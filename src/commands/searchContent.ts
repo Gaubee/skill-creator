@@ -1,11 +1,11 @@
 /**
- * Search skill command
+ * Search skill content command
  */
 
 import { join } from 'node:path'
 import { loadSkillConfig, parseArgs, createSearchEngine } from './shared.js'
 
-export async function searchSkill(args: string[]): Promise<void> {
+export async function searchContent(args: string[]): Promise<void> {
   const config = loadSkillConfig()
   const searchEngine = await createSearchEngine(config)
 
@@ -25,7 +25,7 @@ export async function searchSkill(args: string[]): Promise<void> {
   const results = await searchEngine.search(
     options.query,
     options['top-k'],
-    options.source !== 'all' ? { source: options.source } : undefined,
+    options.source !== 'all' ? { source: options.source } : undefined
   )
 
   // Display results

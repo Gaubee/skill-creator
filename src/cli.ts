@@ -172,7 +172,7 @@ program
     try {
       const { runScript } = await import('./core/runScript.js')
       const args = ['--query', query]
-      await runScript('search', args)
+      await runScript('search-skill', args)
     } finally {
       chdir(originalCwd)
     }

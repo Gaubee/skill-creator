@@ -2,7 +2,7 @@
  * Execute skill scripts - simplified version using individual command files
  */
 
-import { searchSkill } from '../commands/searchSkill.js'
+import { searchContent } from '../commands/searchContent.js'
 import { addContent } from '../commands/addContent.js'
 import { updateContext7 } from '../commands/updateContext7.js'
 import { buildIndex } from '../commands/buildIndex.js'
@@ -11,8 +11,7 @@ import { listContent } from '../commands/listContent.js'
 type CommandFunction = (args: string[]) => Promise<void>
 
 const commands: Record<string, CommandFunction> = {
-  search: searchSkill,
-  'search-skill': searchSkill,
+  'search-skill': searchContent,
   add: addContent,
   'add-skill': addContent,
   'update-context7': updateContext7,
