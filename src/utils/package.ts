@@ -201,12 +201,17 @@ export class PackageUtils {
     input: string,
     options: SearchOptions = {}
   ): Promise<SearchResult[]> {
-    // Check if input looks like an exact package name
+    const results: SearchResult[] = []
+
+    // Check if input looks like an exact package name and include it as first result
     if (PackageUtils.validatePackageName(input)) {
       const exact = await PackageUtils.findExactPackage(input)
-      if (exact) return [exact]
+      if (exact) {
+        results.push(exact)
+      }
     }
 
+    // Always perform broader search to find related packages
     // Extract keywords from input
     const keywords = input
       .split(/[\s-]+/)
@@ -218,7 +223,13 @@ export class PackageUtils {
       keywords.push(input)
     }
 
-    return PackageUtils.searchPackages(keywords, options)
+    const searchResults = await PackageUtils.searchPackages(keywords, options)
+
+    // Merge exact match with search results, avoiding duplicates
+    const exactMatchNames = new Set(results.map((r) => r.name))
+    const additionalResults = searchResults.filter((r) => !exactMatchNames.has(r.name))
+
+    return [...results, ...additionalResults].slice(0, options.limit || 10)
   }
 
   /**
