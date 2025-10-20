@@ -6,7 +6,7 @@
 import { spawn, ChildProcess } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import path, { join, dirname } from 'node:path'
 import { createRequire } from 'node:module'
 import { findAvailablePort, waitForService } from './portUtils.js'
 
@@ -52,8 +52,8 @@ export class ChromaServerManager {
   /**
    * 初始化 ChromaDB CLI 路径
    */
-  private async initChromaCliPath(): Promise<void> {
-    if (this.chromaCliPath) return
+  private async initChromaCliPath(): Promise<string> {
+    if (this.chromaCliPath) return this.chromaCliPath
 
     try {
       // 首先尝试从当前项目目录查找
@@ -69,8 +69,8 @@ export class ChromaServerManager {
       const cliPath = join(chromaDir, 'dist', 'cli.mjs')
 
       if (existsSync(cliPath)) {
-        this.chromaCliPath = cliPath
         console.log(`✅ Found ChromaDB CLI: ${cliPath}`)
+        return (this.chromaCliPath = cliPath)
       } else {
         throw new Error(`ChromaDB CLI not found at ${cliPath}`)
       }
@@ -95,7 +95,7 @@ export class ChromaServerManager {
    * 启动 ChromaDB 服务器（在独立进程中）
    */
   async startServer(config: ChromaServerConfig): Promise<ChromaServerInfo> {
-    await this.initChromaCliPath()
+    const chromaCliPath = await this.initChromaCliPath()
 
     const serverId = this.generateServerId(config)
 
@@ -128,45 +128,18 @@ export class ChromaServerManager {
     console.log(`🔄 工作目录: ${config.skillDir}`)
 
     // 启动进程 - 从项目根目录启动以确保能找到依赖
-    const process = spawn(
-      'node',
-      [
-        this.chromaCliPath!,
-        'run',
-        '--path',
-        './chromadb',
-        '--port',
-        port.toString(),
-        '--host',
-        'localhost',
-      ],
-      {
-        stdio: 'pipe',
-        detached: false,
-        cwd: config.skillDir, // 在skill目录中启动，确保持久化路径正确
-      }
-    )
-
-    // 处理进程输出
-    process.stdout?.on('data', (data: Buffer) => {
-      const output = data.toString().trim()
-      if (output) {
-        console.log(`📊 ChromaDB: ${output}`)
-      }
+    const subprocess = spawn(process.argv[0], [chromaCliPath, 'run', '--port', port.toString()], {
+      stdio: 'ignore',
+      detached: true,
+      cwd: chromaDir,
     })
+    subprocess.unref()
 
-    process.stderr?.on('data', (data: Buffer) => {
-      const output = data.toString().trim()
-      if (output && !output.includes('WARN')) {
-        console.log(`⚠️  ChromaDB: ${output}`)
-      }
-    })
-
-    process.on('error', (error: Error) => {
+    subprocess.on('error', (error: Error) => {
       console.log('❌ ChromaDB 进程错误:', error.message)
     })
 
-    process.on('exit', (code: number | null, signal: string | null) => {
+    subprocess.on('exit', (code: number | null, signal: string | null) => {
       console.log(`🔚 ChromaDB 进程退出 (code: ${code}, signal: ${signal})`)
       this.servers.delete(serverId)
     })
@@ -178,7 +151,7 @@ export class ChromaServerManager {
     const isStarted = await waitForService(port, startupTimeout)
 
     if (!isStarted) {
-      process.kill('SIGTERM')
+      subprocess.kill('SIGTERM')
       throw new Error(`ChromaDB 服务器启动超时 (端口: ${port})`)
     }
 
@@ -188,7 +161,7 @@ export class ChromaServerManager {
     const serverInfo: ChromaServerInfo = {
       port,
       dataPath: chromaDir,
-      process,
+      process: subprocess,
       config,
     }
 

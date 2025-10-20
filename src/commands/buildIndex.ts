@@ -13,8 +13,7 @@ export async function buildIndex(args: string[]): Promise<void> {
 
   // Build index
   const referencesDir = join(process.cwd(), 'assets', 'references')
-  const hashFile = join(process.cwd(), 'assets', '.last_index_hash')
-  await searchEngine.buildIndex(referencesDir, hashFile)
+  await searchEngine.buildIndex(referencesDir)
 
   // Show stats
   const stats = await searchEngine.getStats()

@@ -71,10 +71,10 @@ export class UnifiedSearchEngine {
   /**
    * Build search index
    */
-  async buildIndex(referencesDir: string, hashFile: string): Promise<void> {
+  async buildIndex(referencesDir: string): Promise<void> {
     await this.ensureInitialized()
     if (this.searchEngine) {
-      await this.searchEngine.buildIndex(referencesDir, hashFile)
+      await this.searchEngine.buildIndex(referencesDir)
     }
   }
 
@@ -110,8 +110,8 @@ export class UnifiedSearchEngine {
     const formattingOptions: FormattingOptions = {
       skillPath: this.options.skillPath || process.cwd(),
       maxPreviewLength: this.options.formatting?.maxPreviewLength || 200,
-      showFullContentThreshold: this.options.formatting?.showFullContentThreshold || 0.8,
-      minScoreForPreview: this.options.formatting?.minScoreForPreview || 0.3,
+      showFullContentThreshold: this.options.formatting?.showFullContentThreshold || 0.15,
+      minScoreForPreview: this.options.formatting?.minScoreForPreview || 0.1,
       showLineNumbers: this.options.formatting?.showLineNumbers ?? true,
     }
 

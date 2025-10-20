@@ -41,11 +41,13 @@ export class ChromaSearchAdapter implements SearchEngine {
   private serverManager: ChromaServerManager
   private options: ChromaSearchOptions
   private isIndexBuilt = false
+  private embeddingFunction: DefaultEmbeddingFunction
 
   constructor(options: ChromaSearchOptions) {
     this.options = options
     this.fuzzyAdapter = new FuzzySearchAdapter()
     this.serverManager = ChromaServerManager.getInstance()
+    this.embeddingFunction = new DefaultEmbeddingFunction()
   }
 
   /**
@@ -82,7 +84,8 @@ export class ChromaSearchAdapter implements SearchEngine {
     // 创建ChromaDB客户端
     console.log(`🔗 连接到 ChromaDB: http://localhost:${serverInfo.port}`)
     const client = new ChromaClient({
-      path: `http://localhost:${serverInfo.port}`,
+      host: 'localhost',
+      port: serverInfo.port,
     })
 
     // 测试连接
@@ -142,6 +145,7 @@ export class ChromaSearchAdapter implements SearchEngine {
         try {
           collection = await client.getCollection({
             name: this.options.collectionName,
+            embeddingFunction: this.embeddingFunction,
           })
           console.log(`📚 获取现有集合: ${this.options.collectionName}`)
         } catch (error) {
@@ -178,8 +182,25 @@ export class ChromaSearchAdapter implements SearchEngine {
             const id = results.ids[0][i]
             const document = results.documents[0]?.[i]
             const metadata = results.metadatas[0]?.[i]
+            const distance = results.distances?.[0]?.[i] || 1
 
             if (id && document) {
+              // 将distance转换为similarity
+              // ChromaDB使用不同的距离度量，这里使用更通用的转换方法
+              let similarity: number
+
+              if (distance <= 0) {
+                // 完美匹配
+                similarity = 1.0
+              } else if (distance <= 1) {
+                // 对于小距离使用线性转换
+                similarity = 1 - distance
+              } else {
+                // 对于大距离使用归一化到0-0.3范围
+                // 这确保即使距离很大，也不会完全为0
+                similarity = Math.max(0.1, 0.3 / distance)
+              }
+
               searchResults.push({
                 id,
                 title: (typeof metadata?.title === 'string'
@@ -192,10 +213,11 @@ export class ChromaSearchAdapter implements SearchEngine {
                 file_path: (typeof metadata?.file_path === 'string'
                   ? metadata.file_path
                   : `unknown/${id}`) as string,
-                score: 1 - (results.distances?.[0]?.[i] || 0), // Convert distance to similarity
+                score: similarity,
                 metadata: {
                   ...metadata,
-                  similarity: results.distances?.[0]?.[i] || 0,
+                  similarity: distance,
+                  distance: distance,
                   serverPort: serverInfo.port,
                   indexedAt: new Date().toISOString(),
                 },
@@ -223,55 +245,166 @@ export class ChromaSearchAdapter implements SearchEngine {
     }
   }
 
-  async buildIndex(referencesDir: string, hashFile: string): Promise<void> {
-    console.log('🔧 构建 ChromaDB 索引...')
+  /**
+   * 计算当前文件的hash映射 {filename: hash}
+   */
+  private async calculateFileHashes(referencesDir: string): Promise<Map<string, string>> {
+    const fs = await import('node:fs')
+    const { createHash } = await import('node:crypto')
+    const { glob } = await import('glob')
 
-    // 准备ChromaDB环境
-    const { client, serverInfo, shouldAutoShutdown } = await this.prepareChromadb(
-      'build-index',
-      false
-    )
+    const files = await glob('**/*.md', { cwd: referencesDir })
+    const fileHashes = new Map<string, string>()
+
+    for (const file of files.sort()) {
+      try {
+        const fullPath = `${referencesDir}/${file}`
+        const content = fs.readFileSync(fullPath, 'utf-8')
+        const hash = createHash('sha256').update(content).digest('hex')
+        fileHashes.set(file, hash)
+      } catch (error) {
+        console.warn(`⚠️ 计算文件hash失败 ${file}:`, error)
+      }
+    }
+
+    return fileHashes
+  }
+
+  /**
+   * 加载之前的文件hash缓存
+   */
+  private async loadFileHashCache(cacheFile: string): Promise<Map<string, string>> {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+
+    // 确保缓存目录存在
+    const cacheDir = path.dirname(cacheFile)
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true })
+    }
+
+    const fileHashes = new Map<string, string>()
 
     try {
-      // 删除现有集合
-      try {
-        const existingCollection = await client.getCollection({
-          name: this.options.collectionName,
+      if (fs.existsSync(cacheFile)) {
+        const content = fs.readFileSync(cacheFile, 'utf-8')
+        const data = JSON.parse(content)
+        Object.entries(data).forEach(([file, hash]) => {
+          fileHashes.set(file, hash as string)
         })
-        await client.deleteCollection({
-          name: this.options.collectionName,
-        })
-        console.log('🗑️  已删除现有集合')
-      } catch (error) {
-        // 集合不存在，忽略
       }
+    } catch (error) {
+      console.warn('⚠️ 读取文件hash缓存失败:', error)
+    }
 
-      // 创建新集合
-      const collection = await client.createCollection({
+    return fileHashes
+  }
+
+  /**
+   * 保存文件hash缓存
+   */
+  private async saveFileHashCache(
+    cacheFile: string,
+    fileHashes: Map<string, string>
+  ): Promise<void> {
+    const fs = await import('node:fs')
+
+    try {
+      const data = Object.fromEntries(fileHashes)
+      fs.writeFileSync(cacheFile, JSON.stringify(data, null, 2))
+      console.log('💾 已更新文件hash缓存')
+    } catch (error) {
+      console.warn('⚠️ 保存文件hash缓存失败:', error)
+    }
+  }
+
+  /**
+   * 分析文件变化
+   */
+  private analyzeFileChanges(
+    currentHashes: Map<string, string>,
+    previousHashes: Map<string, string>
+  ): {
+    added: string[]
+    modified: string[]
+    deleted: string[]
+  } {
+    const added: string[] = []
+    const modified: string[] = []
+    const deleted: string[] = []
+
+    // 检查新增和修改的文件
+    for (const [file, currentHash] of currentHashes) {
+      const previousHash = previousHashes.get(file)
+      if (!previousHash) {
+        added.push(file)
+      } else if (previousHash !== currentHash) {
+        modified.push(file)
+      }
+    }
+
+    // 检查删除的文件
+    for (const file of previousHashes.keys()) {
+      if (!currentHashes.has(file)) {
+        deleted.push(file)
+      }
+    }
+
+    return { added, modified, deleted }
+  }
+
+  /**
+   * 获取或创建集合
+   */
+  private async getOrCreateCollection(client: any): Promise<any> {
+    try {
+      const collection = await client.getCollection({
         name: this.options.collectionName,
+        embeddingFunction: this.embeddingFunction,
       })
+      console.log(`📝 使用现有集合: ${this.options.collectionName}`)
+      return collection
+    } catch (error) {
       console.log(`📝 创建新集合: ${this.options.collectionName}`)
+      return await client.createCollection({
+        name: this.options.collectionName,
+        embeddingFunction: this.embeddingFunction,
+      })
+    }
+  }
 
-      // 读取并索引文档
-      const fs = await import('node:fs')
-      const { glob } = await import('glob')
-      const { join, relative } = await import('node:path')
+  /**
+   * 处理文件变化
+   */
+  private async processFileChanges(
+    collection: any,
+    referencesDir: string,
+    changes: { added: string[]; modified: string[]; deleted: string[] }
+  ): Promise<void> {
+    const fs = await import('node:fs')
+    const { join, relative } = await import('node:path')
 
-      const files = await glob('**/*.md', { cwd: referencesDir })
-      console.log(`📄 找到 ${files.length} 个文档`)
-
-      if (files.length === 0) {
-        console.log('⚠️ 没有找到文档文件')
-        return
+    // 处理删除的文件
+    if (changes.deleted.length > 0) {
+      try {
+        await collection.delete({
+          ids: changes.deleted,
+        })
+        console.log(`🗑️ 已删除 ${changes.deleted.length} 个文档`)
+      } catch (error) {
+        console.warn('⚠️ 删除文档失败:', error)
       }
+    }
 
-      // 准备嵌入函数
-      const embedder = new DefaultEmbeddingFunction()
+    // 处理新增和修改的文件
+    const filesToProcess = [...changes.added, ...changes.modified]
+    if (filesToProcess.length > 0) {
+      console.log(`📝 处理文件变更: 新增 ${changes.added.length}, 修改 ${changes.modified.length}`)
 
-      // 分批处理文档
+      // 分批处理
       const batchSize = 50
-      for (let i = 0; i < files.length; i += batchSize) {
-        const batch = files.slice(i, i + batchSize)
+      for (let i = 0; i < filesToProcess.length; i += batchSize) {
+        const batch = filesToProcess.slice(i, i + batchSize)
         const documents: string[] = []
         const ids: string[] = []
         const metadatas: any[] = []
@@ -292,24 +425,87 @@ export class ChromaSearchAdapter implements SearchEngine {
               file_path: file,
               source: file.includes('context7/') ? 'context7' : 'user',
               file_name: file.split('/').pop() || file,
+              updated_at: new Date().toISOString(),
             })
           } catch (error) {
-            console.warn(`⚠️ 读取文件失败 ${file}:`, error)
+            console.warn(`⚠️ 处理文件失败 ${file}:`, error)
           }
         }
 
         if (documents.length > 0) {
+          // 先删除已存在的文档（用于修改的情况）
+          const existingIds = ids.filter((id) => changes.modified.includes(id))
+          if (existingIds.length > 0) {
+            try {
+              await collection.delete({
+                ids: existingIds,
+              })
+            } catch (error) {
+              // 忽略删除不存在的文档的错误
+            }
+          }
+
+          // 添加新的文档
           await collection.add({
             ids,
             documents,
             metadatas,
           })
-          console.log(`📚 已索引 ${i + documents.length}/${files.length} 个文档`)
+          console.log(
+            `📚 已处理 ${Math.min(i + batchSize, filesToProcess.length)}/${filesToProcess.length} 个文档`
+          )
         }
       }
+    }
+  }
 
+  async buildIndex(referencesDir: string): Promise<void> {
+    console.log('🔧 构建 ChromaDB 索引...')
+
+    // 准备ChromaDB环境
+    const { client, serverInfo, shouldAutoShutdown } = await this.prepareChromadb(
+      'build-index',
+      false
+    )
+
+    try {
+      // 计算当前文件的hash映射
+      const currentFileHashes = await this.calculateFileHashes(referencesDir)
+
+      // 读取之前的文件hash缓存
+      const cacheFile = `${referencesDir}/../.cache/chroma-file-hashes.json`
+      const previousFileHashes = await this.loadFileHashCache(cacheFile)
+
+      // 分析文件变化
+      const changes = this.analyzeFileChanges(currentFileHashes, previousFileHashes)
+
+      console.log(
+        `📊 文件变化分析: 新增 ${changes.added.length}, 修改 ${changes.modified.length}, 删除 ${changes.deleted.length}`
+      )
+
+      if (
+        changes.added.length === 0 &&
+        changes.modified.length === 0 &&
+        changes.deleted.length === 0
+      ) {
+        console.log('✅ 文件未变化，跳过索引重建')
+        this.isIndexBuilt = true
+        return
+      }
+
+      // 获取或创建集合
+      const collection = await this.getOrCreateCollection(client)
+
+      // 处理文件变化
+      await this.processFileChanges(collection, referencesDir, changes)
+
+      // 保存新的文件hash缓存
+      await this.saveFileHashCache(cacheFile, currentFileHashes)
+
+      // 验证索引
+      const count = await collection.count()
+      console.log(`✅ ChromaDB 索引更新完成，当前包含 ${count} 个文档`)
       this.isIndexBuilt = true
-      console.log(`✅ ChromaDB 索引构建完成 (端口: ${serverInfo.port})`)
     } finally {
       // 安全关闭服务器
       await this.safeShutdownServer(serverInfo, shouldAutoShutdown)
@@ -354,6 +550,7 @@ export class ChromaSearchAdapter implements SearchEngine {
       try {
         const collection = await client.getCollection({
           name: this.options.collectionName,
+          embeddingFunction: this.embeddingFunction,
         })
         const count = await collection.count()
         return { totalDocuments: count }

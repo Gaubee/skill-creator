@@ -3,7 +3,7 @@
  * 用于动态分配和管理 ChromaDB 服务器端口
  */
 
-import { createServer } from 'node:net'
+import { AddressInfo, createServer } from 'node:net'
 import { promisify } from 'node:util'
 import { createRequire } from 'node:module'
 
@@ -13,33 +13,20 @@ import { createRequire } from 'node:module'
  * @param maxPort 最大端口号
  * @returns 可用的端口号
  */
-export async function findAvailablePort(
-  startPort: number = 8000,
-  maxPort: number = 9000
-): Promise<number> {
+export async function findAvailablePort(): Promise<number> {
   return new Promise((resolve, reject) => {
-    const tryPort = (port: number) => {
-      if (port > maxPort) {
-        reject(new Error(`No available ports found between ${startPort} and ${maxPort}`))
-        return
-      }
-
+    const tryPort = () => {
       const server = createServer()
 
-      server.listen(port, () => {
-        const actualPort = (server.address() as any)?.port
+      server.listen(0, () => {
+        const actualPort = (server.address() as AddressInfo)?.port
         server.close(() => {
           resolve(actualPort)
         })
       })
-
-      server.on('error', () => {
-        // 端口被占用，尝试下一个端口
-        tryPort(port + 1)
-      })
     }
 
-    tryPort(startPort)
+    tryPort()
   })
 }
 

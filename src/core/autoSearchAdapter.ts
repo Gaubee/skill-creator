@@ -49,9 +49,9 @@ export class AutoSearchAdapter implements SearchEngine {
     return this.chromaAdapter
   }
 
-  async buildIndex(referencesDir: string, hashFile: string): Promise<void> {
+  async buildIndex(referencesDir: string): Promise<void> {
     // Always build fuzzy index (fast and reliable)
-    await this.fuzzyAdapter.buildIndex(referencesDir, hashFile)
+    await this.fuzzyAdapter.buildIndex(referencesDir)
 
     // Build ChromaDB index only if needed (on-demand)
     // This prevents unnecessary ChromaDB startup for simple searches
@@ -113,7 +113,7 @@ export class AutoSearchAdapter implements SearchEngine {
     }
 
     // Check score distribution
-    const scores = results.map(r => r.score)
+    const scores = results.map((r) => r.score)
     const maxScore = Math.max(...scores)
     const avgScore = scores.reduce((sum, score) => sum + score, 0) / scores.length
 

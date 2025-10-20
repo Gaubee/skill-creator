@@ -276,7 +276,7 @@ export class ContentManager {
   }
 
   private async downloadContext7Doc(libraryId: string): Promise<string> {
-    const url = `https://context7.com${libraryId}/llms.txt?token=100000000`
+    const url = `https://context7.com${libraryId}/llms.txt?tokens=100000000`
 
     const response = await fetch(url)
     if (!response.ok) {

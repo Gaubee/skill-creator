@@ -23,7 +23,7 @@ export interface SearchEngine {
   /**
    * Build search index from files
    */
-  buildIndex(referencesDir: string, hashFile: string): Promise<void>
+  buildIndex(referencesDir: string): Promise<void>
 
   /**
    * Search for documents matching the query

@@ -34,7 +34,7 @@ export class FuzzySearchAdapter implements SearchEngine {
     })
   }
 
-  async buildIndex(referencesDir: string, hashFile: string): Promise<void> {
+  async buildIndex(referencesDir: string): Promise<void> {
     console.log('🔨 Building fuzzy search index with uFuzzy...')
 
     const files = await glob('**/*.md', { cwd: referencesDir })
