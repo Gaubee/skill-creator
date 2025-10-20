@@ -127,3 +127,15 @@ const client = new ChromaClient({
 
 1. buildIndex 函数在设计上不该耦合hashFile的设计，这是每个适配器自己的实现，否则不同的适配器公用同一个hash就冲突的。像我们的fuzzySearch本身就不支持也不需要缓存
 2. 对于chroma，它的hash文件结构应该更加复杂，它应该是一个`{filename:hash}`的结构，这样一来，我们就可以知道哪些文件变了，哪些文件删除了，哪些文件增加了，从而针对性更新chroma的内容。
+
+----
+
+现在完善一下体验：
+
+1. download-context7 这个命令，应该自动开启chroma索引的构建，直到完成才能推出。
+这样会比较符合直觉，另外提供一个 `--skip-chroma-indexing` 来跳过这个步骤，以防万一需要。
+2. 我们仍然需要 init 这个命令，同时保留 init-cc 这个命令，因为目前只有claude-code的支持，所以init和init-cc是一样的效果
+3. init/init-cc 的命令是给用户使用的，因此应该默认开启“交互”模式，就是询问要安装在当前目录还是用户目录。
+4. init/init-cc 存在问题，我们最终的结果应该是在`.claude/agents/`目录下创建`skill-creator.md`文件，现在却只是创建了一个目录。
+5. 更新我们的README.md文件，充分参考 AGENTD.md 和 skill-creator.md ，来言简意赅地编写README.md的内容，使用英文
+6. 将当前的 skill-creator.md 更名成 skill-creator.zh-CN.md，然后翻译出英文版本的 skill-creator.md，在并且符合提示词的最佳时间

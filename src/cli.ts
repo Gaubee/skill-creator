@@ -160,35 +160,24 @@ program
     }
   })
 
-// Add init command to install subagents
+// Add interactive init command
+program
+  .command('init')
+  .description('Install skill-creator as subagent (interactive mode)')
+  .action(async () => {
+    const { runScript } = await import('./core/runScript.js')
+    await runScript('init', [])
+  })
+
+// Add init command to install subagents (non-interactive version)
 program
   .command('init-cc')
   .description('Install skill-creator as subagent in ~/.claude/agents/')
   .action(async () => {
-    const { homedir } = await import('node:os')
-    const { join } = await import('node:path')
-    const { mkdirSync, writeFileSync } = await import('node:fs')
-
-    const agentsDir = join(homedir(), '.claude', 'agents')
-    const skillCreatorDir = join(agentsDir, 'skill-creator')
-
-    // Create directories
-    mkdirSync(agentsDir, { recursive: true })
-    mkdirSync(skillCreatorDir, { recursive: true })
-
-    // Create subagent manifest
-    const manifest = {
-      name: 'skill-creator',
-      version: '2.0.0',
-      description: 'Claude Code skill creation agent',
-      main: process.cwd(),
-      commands: ['search', 'get-name', 'download-context7', 'addSkill'],
-    }
-
-    writeFileSync(join(skillCreatorDir, 'manifest.json'), JSON.stringify(manifest, null, 2))
-
-    console.log(gradient('green', 'cyan')('\n✅ Skill-creator subagent installed successfully!'))
-    console.log(`📍 Location: ${skillCreatorDir}`)
+    const { runScript } = await import('./core/runScript.js')
+    // For init-cc, we want the non-interactive version that installs to user directory
+    // Use --scope=user for consistency with other CLI commands
+    await runScript('init', ['--scope', 'user'])
   })
 
 // Add search command for package searching
@@ -315,6 +304,7 @@ program
   .option('--pwd <path>', 'Path to the skill directory')
   .option('--package <name>', 'Package name to find skill directory for')
   .option('-f, --force', 'Force update even if up to date')
+  .option('--skip-chroma-indexing', 'Skip automatic ChromaDB index building after download')
   .action(async (projectId, options) => {
     let skillDir: string | undefined
 
@@ -354,9 +344,13 @@ program
 
     try {
       const { runScript } = await import('./core/runScript.js')
-      const args = options.force ? ['--force'] : []
+      const args = []
+
+      if (options.force) args.push('--force')
+      if (options['skip-chroma-indexing']) args.push('--skip-chroma-indexing')
       args.push('--project-id', projectId)
-      await runScript('update-context7', args)
+
+      await runScript('download-context7', args)
     } finally {
       chdir(originalCwd)
     }
@@ -436,7 +430,7 @@ program
 // Add sub-commands for script execution
 program
   .command('run-script')
-  .argument('<script>', 'Script to run (search, add, update-context7, build-index, list-content)')
+  .argument('<script>', 'Script to run (search, add, download-context7, build-index, list-content)')
   .allowUnknownOption(true)
   .action(async (script: string) => {
     const { runScript } = await import('./core/runScript.js')

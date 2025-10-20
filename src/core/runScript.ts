@@ -4,7 +4,8 @@
 
 import { searchContent } from '../commands/searchContent.js'
 import { addContent } from '../commands/addContent.js'
-import { updateContext7 } from '../commands/updateContext7.js'
+import { downloadContext7 } from '../commands/downloadContext7.js'
+import { init } from '../commands/init.js'
 import { buildIndex } from '../commands/buildIndex.js'
 import { listContent } from '../commands/listContent.js'
 
@@ -14,8 +15,8 @@ const commands: Record<string, CommandFunction> = {
   'search-skill': searchContent,
   add: addContent,
   'add-skill': addContent,
-  'update-context7': updateContext7,
-  'download-context7': updateContext7,
+  'download-context7': downloadContext7,
+  init: init,
   'build-index': buildIndex,
   'list-content': listContent,
 }
