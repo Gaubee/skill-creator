@@ -85,20 +85,32 @@ export function parseArgs(
 }
 
 /**
- * Create unified search engine instance
+ * Create search engine instance
  */
 export async function createSearchEngine(
   config: SkillConfig,
-  searchMode: 'chroma' | 'fuzzy' | 'auto' = 'auto'
+  searchMode: 'chroma' | 'fuzzy' | 'auto' = 'auto',
+  useFormatting: boolean = true
 ) {
   const { UnifiedSearchEngine } = await import('../core/unifiedSearch.js')
 
   return new UnifiedSearchEngine({
-    type: searchMode,
+    mode: searchMode,
     skillDir: join(process.cwd(), 'assets'),
     referencesDir: join(process.cwd(), 'assets', 'references'),
-    collectionName: `${config.name.replace(/[^a-zA-Z0-9._-]/g, '_')}_docs`,
-    enableChromaFallback: true,
-    chromaStartupTimeout: 15000,
+    config,
+    skillPath: process.cwd(),
+    format: useFormatting ? 'enhanced' : undefined,
+    adapterOptions: {
+      enableChromaFallback: true,
+      chromaStartupTimeout: 15000,
+      qualityThreshold: 0.3,
+    },
+    formatting: {
+      maxPreviewLength: 200,
+      showFullContentThreshold: 0.8,
+      minScoreForPreview: 0.3,
+      showLineNumbers: true,
+    },
   })
 }

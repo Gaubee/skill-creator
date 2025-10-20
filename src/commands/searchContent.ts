@@ -25,7 +25,15 @@ export async function searchContent(args: string[]): Promise<void> {
     process.exit(1)
   }
 
-  const searchEngine = await createSearchEngine(config, options.mode as 'auto' | 'fuzzy' | 'chroma')
+  // Create search engine
+  const searchEngine = await createSearchEngine(
+    config,
+    options.mode as 'auto' | 'fuzzy' | 'chroma',
+    false // We'll handle formatting manually for now
+  )
+
+  // Initialize search engine
+  await searchEngine.initialize()
 
   // Build index if needed
   const referencesDir = join(process.cwd(), 'assets', 'references')
