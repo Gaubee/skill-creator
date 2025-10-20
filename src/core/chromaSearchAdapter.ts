@@ -106,10 +106,25 @@ export class ChromaSearchAdapter implements SearchEngine {
     port: number
   ): Promise<SearchResult[]> {
     try {
+      // 等待服务器完全启动
+      console.log(`⏳ 等待 ChromaDB 服务器就绪 (端口: ${port})...`)
+      await new Promise((resolve) => setTimeout(resolve, 2000)) // 等待2秒确保服务器完全启动
+
       // 连接到本地 ChromaDB 服务器
+      console.log(`🔗 连接到 ChromaDB: localhost:${port}`)
       const client = new ChromaClient({
         path: `http://localhost:${port}`,
       })
+
+      // 测试连接
+      try {
+        await client.heartbeat()
+        console.log(`✅ ChromaDB 连接成功`)
+      } catch (error) {
+        throw new Error(
+          `ChromaDB 连接失败: ${error instanceof Error ? error.message : String(error)}`
+        )
+      }
 
       // 获取或创建集合
       let collection
@@ -342,15 +357,12 @@ export class ChromaSearchAdapter implements SearchEngine {
    */
   getServerStatus(): {
     isRunning: boolean
-    runningCount: number
   } {
     const isRunning = this.serverManager.isServerRunning({
       skillDir: this.options.skillDir,
       tempDirName: 'dummy',
     })
 
-    const runningCount = this.serverManager.getRunningServerCount()
-
-    return { isRunning, runningCount }
+    return { isRunning }
   }
 }
