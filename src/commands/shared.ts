@@ -14,11 +14,20 @@ export function loadSkillConfig(): SkillConfig {
   const configPath = join(process.cwd(), 'config.json')
 
   if (!existsSync(configPath)) {
-    console.error('❌ config.json not found. Are you in a skill directory?')
-    process.exit(1)
+    console.warn('⚠️  config.json not found. Using default configuration.')
+    return {
+      name: 'unknown',
+    }
   }
 
-  return Config.load(configPath)
+  try {
+    return Config.load(configPath)
+  } catch (error) {
+    console.warn(`⚠️  Warning: Failed to load config.json. Using default configuration.`)
+    return {
+      name: 'unknown',
+    }
+  }
 }
 
 /**

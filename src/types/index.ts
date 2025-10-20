@@ -4,14 +4,7 @@
 
 export interface SkillConfig {
   name: string
-  description: string
-  context7LibraryId: string
-  version: string
-  chunkSize: number
-  chunkOverlap: number
-  embeddingModel: string
-  similarityThreshold: number
-  maxSearchResults: number
+  context7LibraryId?: string
 }
 
 export interface SearchResult {

@@ -14,6 +14,51 @@ import { homedir } from 'node:os'
 
 const program = new Command()
 
+// Global options storage
+interface GlobalOptions {
+  pwd?: string
+}
+
+let globalOptions: GlobalOptions = {}
+
+// Helper function to resolve skill directory from global or command options
+async function resolveSkillDirectory(commandOptions: {
+  pwd?: string
+  package?: string
+}): Promise<string> {
+  // Use command options first, then global options
+  const pwd = commandOptions.pwd || globalOptions.pwd
+
+  if (pwd) {
+    return pwd
+  }
+
+  if (commandOptions.package) {
+    const { join } = await import('node:path')
+    const { homedir } = await import('node:os')
+    const { readdirSync, existsSync } = await import('node:fs')
+
+    const findDir = (base: string) => {
+      if (!existsSync(base)) return undefined
+      const dirs = readdirSync(base, { withFileTypes: true })
+        .filter((dirent) => dirent.isDirectory())
+        .map((dirent) => dirent.name)
+        .filter((name) => name.includes(commandOptions.package!.replace(/[^a-z0-9]/gi, '')))
+      return dirs.length > 0 ? join(base, dirs[0]) : undefined
+    }
+
+    const skillDir =
+      findDir(join(process.cwd(), '.claude', 'skills')) ||
+      findDir(join(homedir(), '.claude', 'skills'))
+
+    if (skillDir) {
+      return skillDir
+    }
+  }
+
+  throw new Error('Could not find skill directory. Please provide --pwd or a valid --package.')
+}
+
 /**
  * Helper function to create a skill for a package with interactive confirmation
  */
@@ -61,6 +106,13 @@ program
   .name('skill-creator')
   .description('Create claude-code-skills with documentation management')
   .version('2.0.0')
+  .option('--pwd <path>', 'Global path to the skill directory (used for all commands)')
+
+// Handle global options
+program.hook('preAction', (thisCommand) => {
+  const options = thisCommand.opts()
+  globalOptions.pwd = options.pwd
+})
 
 // Add create-cc-skill command
 program
@@ -250,51 +302,30 @@ program
   .option('--mode <mode>', 'Search mode: auto, fuzzy, or chroma', 'auto')
   .option('--list', 'Show simplified list view (basic info only)', false)
   .action(async (query, options) => {
-    let skillDir: string | undefined
-
-    if (options.pwd) {
-      skillDir = options.pwd
-    } else if (options.package) {
-      const { join } = await import('node:path')
-      const { homedir } = await import('node:os')
-      const { readdirSync, existsSync } = await import('node:fs')
-
-      const findDir = (base: string) => {
-        if (!existsSync(base)) return undefined
-        const dirs = readdirSync(base, { withFileTypes: true })
-          .filter((dirent) => dirent.isDirectory())
-          .map((dirent) => dirent.name)
-          .filter((name) => name.includes(options.package.replace(/[^a-z0-9]/gi, '')))
-        return dirs.length > 0 ? join(base, dirs[0]) : undefined
-      }
-
-      skillDir =
-        findDir(join(process.cwd(), '.claude', 'skills')) ||
-        findDir(join(homedir(), '.claude', 'skills'))
-    }
-
-    if (!skillDir) {
-      console.error('❌ Could not find skill directory. Please provide --pwd or a valid --package.')
-      process.exit(1)
-    }
-
-    console.log(gradient('cyan', 'magenta')('\n🔍 Searching in skill...'))
-    console.log(`Skill Path: ${skillDir}`)
-    console.log(`Query: ${query}`)
-
-    const { chdir } = await import('node:process')
-    const originalCwd = process.cwd()
-    chdir(skillDir)
-
     try {
-      const { runScript } = await import('./core/runScript.js')
-      const args = ['--query', query]
-      if (options.mode !== 'auto') args.push('--mode', options.mode)
-      if (options.list) args.push('--list')
-      // Enhanced search is now enabled by default, no need for --enhanced flag
-      await runScript('search-skill', args)
-    } finally {
-      chdir(originalCwd)
+      const skillDir = await resolveSkillDirectory(options)
+
+      console.log(gradient('cyan', 'magenta')('\n🔍 Searching in skill...'))
+      console.log(`Skill Path: ${skillDir}`)
+      console.log(`Query: ${query}`)
+
+      const { chdir } = await import('node:process')
+      const originalCwd = process.cwd()
+      chdir(skillDir)
+
+      try {
+        const { runScript } = await import('./core/runScript.js')
+        const args = ['--query', query]
+        if (options.mode !== 'auto') args.push('--mode', options.mode)
+        if (options.list) args.push('--list')
+        // Enhanced search is now enabled by default, no need for --enhanced flag
+        await runScript('search-skill', args)
+      } finally {
+        chdir(originalCwd)
+      }
+    } catch (error) {
+      console.error(error)
+      process.exit(1)
     }
   })
 
@@ -307,56 +338,35 @@ program
   .option('-f, --force', 'Force update even if up to date')
   .option('--skip-chroma-indexing', 'Skip automatic ChromaDB index building after download')
   .action(async (projectId, options) => {
-    let skillDir: string | undefined
+    try {
+      const skillDir = await resolveSkillDirectory(options)
 
-    if (options.pwd) {
-      skillDir = options.pwd
-    } else if (options.package) {
-      const { join } = await import('node:path')
-      const { homedir } = await import('node:os')
-      const { readdirSync, existsSync } = await import('node:fs')
+      console.log(gradient('cyan', 'magenta')('\n📥 Downloading Context7 documentation...'))
+      console.log(`Skill Path: ${skillDir}`)
+      console.log(`Context7 ID: ${projectId}`)
 
-      const findDir = (base: string) => {
-        if (!existsSync(base)) return undefined
-        const dirs = readdirSync(base, { withFileTypes: true })
-          .filter((dirent) => dirent.isDirectory())
-          .map((dirent) => dirent.name)
-          .filter((name) => name.includes(options.package.replace(/[^a-z0-9]/gi, '')))
-        return dirs.length > 0 ? join(base, dirs[0]) : undefined
+      const { chdir } = await import('node:process')
+      const originalCwd = process.cwd()
+      chdir(skillDir)
+
+      try {
+        const { runScript } = await import('./core/runScript.js')
+        const args = []
+
+        if (options.force) args.push('--force')
+        if (options['skip-chroma-indexing']) args.push('--skip-chroma-indexing')
+        args.push('--project-id', projectId)
+
+        await runScript('download-context7', args)
+      } finally {
+        chdir(originalCwd)
       }
 
-      skillDir =
-        findDir(join(process.cwd(), '.claude', 'skills')) ||
-        findDir(join(homedir(), '.claude', 'skills'))
-    }
-
-    if (!skillDir) {
-      console.error('❌ Could not find skill directory. Please provide --pwd or a valid --package.')
+      console.log(gradient('green', 'cyan')('\n✅ Documentation downloaded and sliced!'))
+    } catch (error) {
+      console.error(error)
       process.exit(1)
     }
-
-    console.log(gradient('cyan', 'magenta')('\n📥 Downloading Context7 documentation...'))
-    console.log(`Skill Path: ${skillDir}`)
-    console.log(`Context7 ID: ${projectId}`)
-
-    const { chdir } = await import('node:process')
-    const originalCwd = process.cwd()
-    chdir(skillDir)
-
-    try {
-      const { runScript } = await import('./core/runScript.js')
-      const args = []
-
-      if (options.force) args.push('--force')
-      if (options['skip-chroma-indexing']) args.push('--skip-chroma-indexing')
-      args.push('--project-id', projectId)
-
-      await runScript('download-context7', args)
-    } finally {
-      chdir(originalCwd)
-    }
-
-    console.log(gradient('green', 'cyan')('\n✅ Documentation downloaded and sliced!'))
   })
 
 // Add add-skill command
@@ -375,57 +385,36 @@ program
       process.exit(1)
     }
 
-    let skillDir: string | undefined
+    try {
+      const skillDir = await resolveSkillDirectory(options)
 
-    if (options.pwd) {
-      skillDir = options.pwd
-    } else if (options.package) {
-      const { join } = await import('node:path')
-      const { homedir } = await import('node:os')
-      const { readdirSync, existsSync } = await import('node:fs')
+      console.log(gradient('cyan', 'magenta')('\n📝 Adding content to skill...'))
+      console.log(`Skill Path: ${skillDir}`)
 
-      const findDir = (base: string) => {
-        if (!existsSync(base)) return undefined
-        const dirs = readdirSync(base, { withFileTypes: true })
-          .filter((dirent) => dirent.isDirectory())
-          .map((dirent) => dirent.name)
-          .filter((name) => name.includes(options.package.replace(/[^a-z0-9]/gi, '')))
-        return dirs.length > 0 ? join(base, dirs[0]) : undefined
+      const { chdir } = await import('node:process')
+      const originalCwd = process.cwd()
+      chdir(skillDir)
+
+      try {
+        const { runScript } = await import('./core/runScript.js')
+        const args = []
+
+        if (options.title) args.push('--title', options.title)
+        if (options.content) args.push('--content', options.content)
+        if (options.file) args.push('--file', options.file)
+        if (options.force) args.push('--force')
+        if (options.forceAppend) args.push('--force-append')
+
+        await runScript('add', args)
+      } finally {
+        chdir(originalCwd)
       }
 
-      skillDir =
-        findDir(join(process.cwd(), '.claude', 'skills')) ||
-        findDir(join(homedir(), '.claude', 'skills'))
-    }
-
-    if (!skillDir) {
-      console.error('❌ Could not find skill directory. Please provide --pwd or a valid --package.')
+      console.log(gradient('green', 'cyan')('\n✅ Content added successfully!'))
+    } catch (error) {
+      console.error(error)
       process.exit(1)
     }
-
-    console.log(gradient('cyan', 'magenta')('\n📝 Adding content to skill...'))
-    console.log(`Skill Path: ${skillDir}`)
-
-    const { chdir } = await import('node:process')
-    const originalCwd = process.cwd()
-    chdir(skillDir)
-
-    try {
-      const { runScript } = await import('./core/runScript.js')
-      const args = []
-
-      if (options.title) args.push('--title', options.title)
-      if (options.content) args.push('--content', options.content)
-      if (options.file) args.push('--file', options.file)
-      if (options.force) args.push('--force')
-      if (options.forceAppend) args.push('--force-append')
-
-      await runScript('add', args)
-    } finally {
-      chdir(originalCwd)
-    }
-
-    console.log(gradient('green', 'cyan')('\n✅ Content added successfully!'))
   })
 
 // Add sub-commands for script execution

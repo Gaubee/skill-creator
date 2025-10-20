@@ -8,26 +8,19 @@ import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import type { CreateSkillOptions, CreateSkillResult } from '../types/index.js'
 import { Config } from '../utils/config.js'
-import { TemplateManager } from './templateManager.js'
 
 // Internal config interface used during skill creation
 interface SkillCreateConfig {
   name: string
-  description: string
-  version: string
   packageName: string
   context7LibraryId?: string
-  license?: string
-  homepage?: string
 }
 
 export class SkillCreator {
   private templateDir: string
-  private templateManager: TemplateManager
 
   constructor() {
     this.templateDir = join(import.meta.dirname, '../../templates')
-    this.templateManager = new TemplateManager()
   }
 
   async createSkill(options: CreateSkillOptions): Promise<CreateSkillResult> {
@@ -76,30 +69,12 @@ export class SkillCreator {
 
       mkdirSync(skillDir, { recursive: true })
 
-      // Detect framework template
-      const template = this.templateManager.detectFramework(options.packageName)
-
       // Create configuration
-      let context7Id = options.context7Id
-      if (!context7Id && template?.context7Ids?.length) {
-        context7Id = template.context7Ids[0]
-      }
-
       const config = Config.createDefault({
         skillName,
-        description: options.description ?? `Documentation skill for ${options.packageName}`,
         context7Id:
-          context7Id ?? `/${options.packageName.replace('@', '').replace('/', '__')}/docs`,
+          options.context7Id ?? `/${options.packageName.replace('@', '').replace('/', '__')}/docs`,
       })
-
-      // Set the actual version (not formatted) in config
-      config.version = version ?? '1.0.0'
-
-      // Apply template if detected
-      if (template) {
-        console.log(`\n📋 Detected framework: ${template.name}`)
-        this.templateManager.applyTemplate(template, skillDir, config)
-      }
 
       // Create directory structure
       await this.createDirectoryStructure(skillDir)
@@ -107,15 +82,13 @@ export class SkillCreator {
       // Create basic config.json (minimal configuration)
       const skillConfig: SkillCreateConfig = {
         name: config.name,
-        description: config.description,
-        version: config.version,
         packageName: options.packageName,
         context7LibraryId: config.context7LibraryId,
       }
       this.createBasicConfig(skillDir, skillConfig)
 
       // Create SKILL.md from template
-      await this.createSkillMdFromTemplate(skillDir, skillConfig)
+      await this.createSkillMdFromTemplate(skillDir, skillConfig, options)
 
       result.created = true
       result.skillPath = skillDir
@@ -153,10 +126,8 @@ export class SkillCreator {
   private createBasicConfig(skillDir: string, config: SkillCreateConfig): void {
     const basicConfig = {
       name: config.name,
-      description: config.description,
-      version: config.version,
       packageName: config.packageName,
-      context7LibraryId: '', // Will be filled by download-context7 command
+      context7_library_id: '', // Will be filled by download-context7 command
     }
 
     const configPath = join(skillDir, 'config.json')
@@ -165,7 +136,8 @@ export class SkillCreator {
 
   private async createSkillMdFromTemplate(
     skillDir: string,
-    config: SkillCreateConfig
+    config: SkillCreateConfig,
+    options: CreateSkillOptions
   ): Promise<void> {
     const templatePath = join(this.templateDir, 'SKILL.md')
 
@@ -175,18 +147,18 @@ export class SkillCreator {
 
     let templateContent = readFileSync(templatePath, 'utf-8')
 
-    // Replace template variables with English defaults
+    // Replace template variables with options data
     templateContent = templateContent
       .replace(/{{NAME}}/g, config.name)
       .replace(
         /{{DESCRIPTION}}/g,
-        config.description ||
+        options.description ||
           `Specialized ${config.name} expert assistant providing comprehensive technical support`
       )
-      .replace(/{{PACKAGE_NAME}}/g, config.packageName || config.name)
-      .replace(/{{LICENSE}}/g, config.license || 'MIT')
+      .replace(/{{PACKAGE_NAME}}/g, config.packageName)
+      .replace(/{{LICENSE}}/g, 'MIT')
       .replace(/{{SKILL_PATH}}/g, skillDir)
-      .replace(/{{CONTEXT7_ID}}/g, config.context7LibraryId || '{{CONTEXT7_ID}}')
+      .replace(/{{CONTEXT7_ID}}/g, options.context7Id || '{{CONTEXT7_ID}}')
 
     writeFileSync(join(skillDir, 'SKILL.md'), templateContent)
   }
