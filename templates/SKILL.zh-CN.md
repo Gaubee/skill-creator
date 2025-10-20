@@ -51,8 +51,92 @@ pnpm add {{PACKAGE_NAME}}
 ### 搜索文档知识点
 查询{{NAME}}的相关信息、API使用、最佳实践等：
 
+#### 基础搜索
 ```bash
 skill-creator search-skill --pwd="{{SKILL_PATH}}" "搜索关键词"
+```
+
+#### 搜索模式选择
+```bash
+# 自动模式（默认）- 智能选择搜索策略
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=auto "搜索关键词"
+
+# ChromaDB模式 - 语义化搜索，理解上下文含义
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=chroma "搜索关键词"
+
+# Fuzzy模式 - 关键字搜索，字符串模糊匹配
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "搜索关键词"
+```
+
+#### 搜索模式详解
+
+**🤖 Auto 模式（自动模式，默认）**
+- **工作原理**: 首先使用 Fuzzy 搜索进行快速匹配，如果没有找到满意结果，自动切换到 ChromaDB 进行语义搜索
+- **适用场景**: 
+  - 不确定使用哪种搜索方式时
+  - 希望获得最佳搜索平衡时
+  - 日常快速查询需求
+- **优势**: 智能切换，兼顾速度和准确性，用户体验最佳
+
+**🧠 ChromaDB 模式（语义搜索）**
+- **工作原理**: 基于向量数据库和语义模型，理解查询意图和上下文含义，进行概念匹配
+- **适用场景**:
+  - 概念性查询（"如何处理状态管理"）
+  - 功能性搜索（"数据验证的方法"）
+  - 需要理解语义的复杂查询
+  - 查找相关的技术概念和最佳实践
+- **优势**: 理解查询意图，能找到语义相关但关键词不完全匹配的内容，适合概念性搜索
+- **特点**: 
+  - 支持自然语言查询
+  - 能理解同义词和相关概念
+  - 基于语义相似度排序结果
+  - 需要构建搜索索引
+
+**🔍 Fuzzy 模式（模糊搜索）**
+- **工作原理**: 基于字符串模糊匹配算法，快速查找包含指定关键词的内容
+- **适用场景**:
+  - 精确关键词搜索（"useQuery"、"useState"）
+  - API名称和方法查找
+  - 配置项和参数搜索
+  - 快速定位特定术语
+- **优势**: 响应速度快，关键词匹配精确，适合查找具体的API、配置项、方法名等
+- **特点**:
+  - 支持部分匹配和模糊匹配
+  - 搜索速度快，无需索引
+  - 基于关键词相似度排序
+  - 适合技术术语和代码片段搜索
+
+#### 实用搜索示例
+
+**API 和方法查询**（推荐 Fuzzy 模式）:
+```bash
+# 查找特定API
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "useQuery"
+
+# 查找配置选项
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "baseURL配置"
+```
+
+**概念和最佳实践查询**（推荐 ChromaDB 模式）:
+```bash
+# 概念性问题
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=chroma "如何优化React组件性能"
+
+# 最佳实践
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=chroma "状态管理最佳实践"
+```
+
+**日常查询**（使用 Auto 模式）:
+```bash
+# 让系统自动选择最佳搜索方式
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=auto "错误处理"
+skill-creator search-skill --pwd="{{SKILL_PATH}}" "路由配置"  # --mode=auto 是默认值
+```
+
+#### 列表模式显示
+如果只需要查看简要信息，可以使用列表模式：
+```bash
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --list "搜索关键词"
 ```
 
 **示例查询：**

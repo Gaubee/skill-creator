@@ -51,8 +51,92 @@ pnpm add {{PACKAGE_NAME}}
 ### Search Documentation Knowledge
 Query {{NAME}} for information, API usage, best practices, and technical solutions:
 
+#### Basic Search
 ```bash
 skill-creator search-skill --pwd="{{SKILL_PATH}}" "search keywords"
+```
+
+#### Search Mode Selection
+```bash
+# Auto mode (default) - Intelligent search strategy selection
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=auto "search keywords"
+
+# ChromaDB mode - Semantic search with contextual understanding
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=chroma "search keywords"
+
+# Fuzzy mode - Keyword search with string fuzzy matching
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "search keywords"
+```
+
+#### Search Modes Explained
+
+**🤖 Auto Mode (Automatic Mode - Default)**
+- **How it works**: First uses Fuzzy search for fast matching, if no satisfactory results are found, automatically switches to ChromaDB for semantic search
+- **Best for**: 
+  - When unsure which search method to use
+  - When you want the best search balance
+  - Daily quick query needs
+- **Advantages**: Intelligent switching, balancing speed and accuracy, optimal user experience
+
+**🧠 ChromaDB Mode (Semantic Search)**
+- **How it works**: Based on vector database and semantic models, understands query intent and context for conceptual matching
+- **Best for**:
+  - Conceptual queries ("how to handle state management")
+  - Functional searches ("methods for data validation")
+  - Complex queries requiring semantic understanding
+  - Finding related technical concepts and best practices
+- **Advantages**: Understands query intent, can find semantically related content with different keywords, ideal for conceptual searches
+- **Features**:
+  - Supports natural language queries
+  - Understands synonyms and related concepts
+  - Results ranked by semantic similarity
+  - Requires search index building
+
+**🔍 Fuzzy Mode (Fuzzy Search)**
+- **How it works**: Based on string fuzzy matching algorithms, quickly finds content containing specified keywords
+- **Best for**:
+  - Precise keyword searches ("useQuery", "useState")
+  - API name and method lookups
+  - Configuration options and parameters
+  - Quick term location
+- **Advantages**: Fast response, accurate keyword matching, suitable for finding specific APIs, config items, method names, etc.
+- **Features**:
+  - Supports partial and fuzzy matching
+  - Fast search speed, no indexing required
+  - Ranked by keyword similarity
+  - Ideal for technical terms and code snippets
+
+#### Practical Search Examples
+
+**API and Method Queries** (Fuzzy mode recommended):
+```bash
+# Find specific API
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "useQuery"
+
+# Find configuration options
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "baseURL configuration"
+```
+
+**Concept and Best Practice Queries** (ChromaDB mode recommended):
+```bash
+# Conceptual questions
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=chroma "how to optimize React component performance"
+
+# Best practices
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=chroma "state management best practices"
+```
+
+**Daily Queries** (Using Auto mode):
+```bash
+# Let system choose the best search method
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=auto "error handling"
+skill-creator search-skill --pwd="{{SKILL_PATH}}" "routing configuration"  # --mode=auto is default
+```
+
+#### List Mode Display
+For a simplified view of results, use list mode:
+```bash
+skill-creator search-skill --pwd="{{SKILL_PATH}}" --list "search keywords"
 ```
 
 **Example Queries:**
