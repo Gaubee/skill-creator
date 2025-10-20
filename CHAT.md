@@ -75,3 +75,55 @@
 
 1. 首先我们 scope == maxScope 是必然显示全部内容的，这点是最高优先级的策略
 2. 如果剔除maxScope的项，只有1项结果，那么我的平均数就直接等于这一项的scope，也就是说这一项一定是limit-preview
+
+---
+
+另外我发现init-cc没有如期工作（参考AGENTS.md），也请你修复。
+修复完成后记得分批提交一下代码。提交之前记得删除掉你临时的测试文件。
+
+---
+
+好的，我发现问题了，首先是 npm:chromadb 的版本不对，我已经更新到v3了。
+根据v3的文档（自己读一下node_modules里头的README），我们需要首先运行`chroma run`，因为我们是npm包，这个是配置在bin中的：
+"bin": {
+"chroma": "dist/cli.mjs"
+},
+
+而我们自己也是一个 skill-creator的cli，所以肯定要做一些操作：我们得resolve到chromadb的包，找到它的package.json，然后找到它的bin配置，然后再找到对应的js文件，然后用这个js文件来启动chroma。
+也就是执行 chroma run。
+接下来就是要通过 --path、--port 配置这个chroma run。
+首先 --path 肯定是指向我们 skill_dir_fullpath 中的某个目录。
+然后 --port 需要找到临时一个可用的端口。因为我们每一个文件夹都会有一个独立的`chroma run`来提供索引服务。
+
+---
+
+我们只有在执行skill-search，并且mode被分配成chroma的时候(--mode=chroma，或者--mode=auto并且通过fuzzy模式找不到高分匹配的结果，那么自动启动chroma)，才需要启动ChromaDB服务器。
+
+搜索完成后就该立刻关掉。
+
+---
+
+1. unifiedSearch不该直接耦合 “auto”的搜索模式。我们应该构建一个 autoSearchAdapter
+2. 理论上analyzeQueryAndSelectEngine这种函数完全不需要。甚至可以说，有了 autoSearchAdapter，那么unifiedSearch也就完全不需要，我们需要的只是一个 `await buildSearchEngine(options)`
+
+---
+
+你搞错文档了，我找到最新的用法：
+
+```
+const client = new ChromaClient({
+  path: "http://localhost:8000",
+});
+```
+
+而我们的持久化存储，其实只需要通过 process.chdir 来进入对应的目录，再启动 chromaClient 就行。
+
+1. 也就是说，我们进入到asserts文件夹来启动ChromaClient（现在这个随机文件夹的名称是完全没必要），或者进入到 asserts/chromadb 来隔离数据库文件也许更好
+2. 我们应该在尝试一个独立的线程或者进程中来启动chromaClient，这样可以隔离 process.chdir 带来的副作用
+
+---
+
+我对目前的索引逻辑并不满意，我说过，用fileContentHash来作为id，这样就可以基于差异来做更新，否则你现在这样，有一点点变动，就要全部完全重新索引？这合理吗你觉得。
+
+1. buildIndex 函数在设计上不该耦合hashFile的设计，这是每个适配器自己的实现，否则不同的适配器公用同一个hash就冲突的。像我们的fuzzySearch本身就不支持也不需要缓存
+2. 对于chroma，它的hash文件结构应该更加复杂，它应该是一个`{filename:hash}`的结构，这样一来，我们就可以知道哪些文件变了，哪些文件删除了，哪些文件增加了，从而针对性更新chroma的内容。
