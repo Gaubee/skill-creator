@@ -7,26 +7,17 @@ import { existsSync, mkdirSync, writeFileSync, chmodSync, readdirSync, readFileS
 import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import type { CreateSkillOptions, CreateSkillResult } from '../types/index.js'
-import { Config } from '../utils/config.js'
 import { TemplateManager } from './templateManager.js'
-
-// Internal config interface used during skill creation
-interface SkillCreateConfig {
-  name: string
-  description: string
-  version: string
-  packageName: string
-  context7LibraryId?: string
-  license?: string
-  homepage?: string
-}
 
 export class SkillCreator {
   private templateDir: string
   private templateManager: TemplateManager
 
   constructor() {
-    this.templateDir = join(import.meta.dirname, '../../templates')
+    // Use __dirname equivalent for ES modules
+    const __filename = new URL(import.meta.url).pathname
+    const __dirname = join(__filename, '..')
+    this.templateDir = join(__dirname, '..', 'templates')
     this.templateManager = new TemplateManager()
   }
 
@@ -51,7 +42,7 @@ export class SkillCreator {
 
       // Determine output path
       const outputPath =
-        options.scope === 'user'
+        options.storage === 'user'
           ? join(homedir(), '.claude', 'skills')
           : options.path
             ? resolve(options.path) // Ensure absolute path
@@ -104,18 +95,8 @@ export class SkillCreator {
       // Create directory structure
       await this.createDirectoryStructure(skillDir)
 
-      // Create basic config.json (minimal configuration)
-      const skillConfig: SkillCreateConfig = {
-        name: config.name,
-        description: config.description,
-        version: config.version,
-        packageName: options.packageName,
-        context7LibraryId: config.context7LibraryId,
-      }
-      this.createBasicConfig(skillDir, skillConfig)
-
       // Create SKILL.md from template
-      await this.createSkillMdFromTemplate(skillDir, skillConfig)
+      await this.createSkillMdFromTemplate(skillDir, config)
 
       result.created = true
       result.skillPath = skillDir
@@ -150,44 +131,113 @@ export class SkillCreator {
     }
   }
 
-  private createBasicConfig(skillDir: string, config: SkillCreateConfig): void {
-    const basicConfig = {
-      name: config.name,
-      description: config.description,
-      version: config.version,
-      packageName: config.packageName,
-      context7LibraryId: '', // Will be filled by download-context7 command
-    }
+  private createSkillMd(skillDir: string, config: any): void {
+    const content = `---
+name: ${config.name}
+description: ${config.description}
+license: Complete terms in LICENSE.txt
+---
 
-    const configPath = join(skillDir, 'config.json')
-    writeFileSync(configPath, JSON.stringify(basicConfig, null, 2))
+# ${config.name} Documentation Skill
+
+This skill provides comprehensive documentation management for ${config.name}, featuring:
+
+## Features
+
+1. **Intelligent Search**: ChromaDB-powered semantic search through all documentation
+2. **Dynamic Content Addition**: Add new knowledge with deduplication and smart updates
+3. **Context7 Integration**: Automatically fetches and slices latest documentation
+4. **Priority Management**: User-generated content takes precedence over Context7 docs
+
+## Usage
+
+### Search Documentation
+To search through the documentation:
+\`\`\`bash
+skill-creator search-skill --pwd "${skillDir}" "your search query"
+\`\`\`
+
+### Add New Knowledge
+To add new documentation or knowledge:
+\`\`\`bash
+skill-creator add-skill --pwd "${skillDir}" --title "content title" --content "your content"
+\`\`\`
+
+### Update from Context7
+To refresh documentation from Context7:
+\`\`\`bash
+skill-creator download-context7 --pwd "${skillDir}" <context7_library_id>
+\`\`\`
+
+### List All Content
+To list all documentation files:
+\`\`\`bash
+cd "${skillDir}" && skill-creator run-script list-content
+\`\`\`
+
+### Rebuild Search Index
+To manually rebuild the search index:
+\`\`\`bash
+cd "${skillDir}" && skill-creator run-script build-index
+\`\`\`
+
+## File Structure
+
+- \`assets/references/context7/\` - Auto-generated Context7 documentation slices
+- \`assets/references/user/\` - User-generated knowledge and documentation
+- \`assets/chroma_db/\` - ChromaDB index for semantic search
+
+## Workflow
+
+1. Initial setup automatically downloads and slices Context7 documentation
+2. ChromaDB index is built from all documentation sources
+3. Search queries return ranked results with source citations
+4. New content is intelligently merged with existing knowledge
+5. User content always takes priority over Context7 sources
+
+## Configuration
+
+Edit \`config.json\` to customize:
+- Context7 library ID
+- Embedding model
+- Chunk size and overlap
+- Similarity thresholds
+
+## Dependencies
+
+See \`package.json\` for all required dependencies.
+
+## Installation
+
+Install the dependencies using npm:
+\`\`\`bash
+npm install
+\`\`\`
+`
+
+    writeFileSync(join(skillDir, 'SKILL.md'), content)
   }
 
-  private async createSkillMdFromTemplate(
-    skillDir: string,
-    config: SkillCreateConfig
-  ): Promise<void> {
-    const templatePath = join(this.templateDir, 'SKILL.md')
-
-    if (!existsSync(templatePath)) {
-      throw new Error(`SKILL.md template not found at ${templatePath}`)
+  private createPackageJson(skillDir: string, config: any): void {
+    const content = {
+      name: config.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      version: config.version,
+      description: config.description,
+      type: 'module',
+      dependencies: {
+        chromadb: '^1.8.1',
+        'markdown-it': '^14.1.0',
+        zod: '^3.24.0',
+        'gradient-string': '^3.0.0',
+        ora: '^8.1.0',
+        inquirer: '^10.2.2',
+        dedent: '^1.5.3',
+      },
+      devDependencies: {
+        '@types/node': '^22.10.2',
+      },
     }
 
-    let templateContent = readFileSync(templatePath, 'utf-8')
-
-    // Replace template variables with English defaults
-    templateContent = templateContent
-      .replace(/{{NAME}}/g, config.name)
-      .replace(
-        /{{DESCRIPTION}}/g,
-        config.description ||
-          `Specialized ${config.name} expert assistant providing comprehensive technical support`
-      )
-      .replace(/{{PACKAGE_NAME}}/g, config.packageName || config.name)
-      .replace(/{{LICENSE}}/g, config.license || 'MIT')
-      .replace(/{{SKILL_PATH}}/g, skillDir)
-      .replace(/{{CONTEXT7_ID}}/g, config.context7LibraryId || '{{CONTEXT7_ID}}')
-
-    writeFileSync(join(skillDir, 'SKILL.md'), templateContent)
+    writeFileSync(join(skillDir, 'package.json'), JSON.stringify(content, null, 2))
   }
 }

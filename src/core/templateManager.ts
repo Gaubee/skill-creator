@@ -4,7 +4,7 @@
 
 import { join } from 'node:path'
 import { existsSync, writeFileSync, mkdirSync, chmodSync, readFileSync } from 'node:fs'
-import type { CreateSkillOptions } from '../types/index.js'
+import type { CreateSkillOptions, SkillConfig } from '../types/index.js'
 
 export interface FrameworkTemplate {
   name: string
@@ -79,8 +79,8 @@ export class TemplateManager {
       context7Ids: ['/expressjs/express/docs'],
       additionalDependencies: {
         '@types/express': '^4.17.0',
-        'cors': '^2.8.5',
-        'helmet': '^7.0.0',
+        cors: '^2.8.5',
+        helmet: '^7.0.0',
       },
       additionalScripts: {
         'server-example': 'node scripts/server-example.js',
@@ -92,8 +92,8 @@ export class TemplateManager {
       description: 'The React Framework for Production',
       context7Ids: ['/vercel/next.js/docs'],
       additionalDependencies: {
-        'next': '^14.0.0',
-        'react': '^18.0.0',
+        next: '^14.0.0',
+        react: '^18.0.0',
         'react-dom': '^18.0.0',
       },
       customConfig: {
@@ -124,7 +124,7 @@ export class TemplateManager {
       description: 'Modern ORM for TypeScript and JavaScript',
       context7Ids: ['/typeorm/typeorm/docs'],
       additionalDependencies: {
-        'typeorm': '^0.3.17',
+        typeorm: '^0.3.17',
         'reflect-metadata': '^0.1.13',
       },
       additionalScripts: {
@@ -138,7 +138,7 @@ export class TemplateManager {
       context7Ids: ['/prisma/prisma/docs'],
       additionalDependencies: {
         '@prisma/client': '^5.0.0',
-        'prisma': '^5.0.0',
+        prisma: '^5.0.0',
       },
       additionalScripts: {
         'generate-schema': 'node scripts/generate-schema.js',
@@ -166,7 +166,7 @@ export class TemplateManager {
       description: 'Fast and low overhead web framework, for Node.js',
       context7Ids: ['/fastify/fastify/docs'],
       additionalDependencies: {
-        'fastify': '^4.0.0',
+        fastify: '^4.0.0',
         '@fastify/cors': '^8.0.0',
         '@fastify/helmet': '^11.0.0',
       },
@@ -182,7 +182,10 @@ export class TemplateManager {
   }
 
   detectFramework(packageName: string): FrameworkTemplate | null {
-    const keywords = packageName.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(/\s+/)
+    const keywords = packageName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, ' ')
+      .split(/\s+/)
 
     for (const [templateName, template] of this.templates) {
       // Check if template name matches package keywords
@@ -205,7 +208,7 @@ export class TemplateManager {
       }
 
       for (const [key, values] of Object.entries(aliases)) {
-        if (key === templateName && values.some(v => keywords.includes(v))) {
+        if (key === templateName && values.some((v) => keywords.includes(v))) {
           return template
         }
       }
@@ -214,11 +217,7 @@ export class TemplateManager {
     return null
   }
 
-  applyTemplate(
-    template: FrameworkTemplate,
-    skillPath: string,
-    config: any
-  ): void {
+  applyTemplate(template: FrameworkTemplate, skillPath: string, config: SkillConfig): void {
     // Update package.json with additional dependencies
     if (template.additionalDependencies) {
       const packageJsonPath = join(skillPath, 'package.json')
@@ -237,23 +236,21 @@ export class TemplateManager {
           }
         }
 
-        writeFileSync(
-          packageJsonPath,
-          JSON.stringify(packageJson, null, 2)
-        )
+        writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2))
       }
     }
 
-    // Update config with custom settings
+    // Update config with template-specific settings
     if (template.customConfig) {
-      Object.assign(config, template.customConfig)
-
-      // Update config file
       const configPath = join(skillPath, 'config.json')
-      writeFileSync(
-        configPath,
-        JSON.stringify(config, null, 2)
-      )
+      let existingConfig = {}
+
+      if (existsSync(configPath)) {
+        existingConfig = JSON.parse(readFileSync(configPath, 'utf-8'))
+      }
+
+      const updatedConfig = { ...existingConfig, ...template.customConfig }
+      writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2))
     }
 
     // Create additional script files
@@ -414,7 +411,7 @@ export class \${className} {\`
     console.log(\`✅ Entity created: \${outputPath}\`)
   })
 `
-  const entityScriptPath = join(scriptsDir, 'generate-entity.js')
+    const entityScriptPath = join(scriptsDir, 'generate-entity.js')
     writeFileSync(entityScriptPath, content)
     chmodSync(entityScriptPath, 0o755)
   }
@@ -510,7 +507,7 @@ inquirer
     console.log('Then: npx prisma generate')
   })
 `
-  const schemaScriptPath = join(scriptsDir, 'generate-schema.js')
+    const schemaScriptPath = join(scriptsDir, 'generate-schema.js')
     writeFileSync(schemaScriptPath, content)
     chmodSync(schemaScriptPath, 0o755)
   }

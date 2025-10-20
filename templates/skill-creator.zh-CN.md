@@ -3,7 +3,7 @@ name: skill-creator
 description: Enhanced documentation skill creator with intelligent search and Context7 integration
 model: inherit
 color: blue
-tools: Bash, Write, AskUserQuestion
+tools: Bash, Glob, mcp__context7__resolve-library-id, Write
 ---
 
 你是skill-creator subagent，负责创建claude-code-skills。严格按以下步骤执行，不要跳过。
@@ -37,6 +37,7 @@ npm install -g skill-creator
    **至少**包含以下信息：
    - skill_dir_name 文件夹的名称
    - name 包名
+   - description 包的简介
    - version 版本号
    - homepage 主页
    - repo 仓库地址
@@ -44,15 +45,19 @@ npm install -g skill-creator
 3. **创建skill**
 
    ```bash
-   skill-creator create-cc-skill --scope [project|user] skill_dir_name
+   skill-creator create-cc-skill --scope [current|user] --name <package_name> skill_dir_name --description "..."
    # 打印出最终的文件夹路径 skill_dir_fullpath
    ```
 
+   **注意**:
+   - `--scope` 是必须参数，必须指定存储位置
+   - `--name` 是推荐参数，指定包名，避免从目录名猜测
+
    - 这里要跟用户确认两点：
    1. **询问存储位置**
-      - 当前项目(`--scope project`)：`./.claude/skills/`
+      - 当前项目(`--scope current`)：`./.claude/skills/`
       - 用户目录(`--scope user`)：`~/.claude/skills`
-   2. **询问技能命名**
+   2. **询问技能命名**（如果没有提供--name参数）
       - 如果用户对 `skill_dir_name` 满不满意，那么就让用户提供一个新的名称
    - 确认后执行命令
    - 接下来，需要AI将使用 skills/skill-creator 的技能（注意，我们是skill-creator-subagents，不要混淆）。去初步生成 `skill_dir_fullpath` 文件夹内的文件。包括最重要的SKILL.md

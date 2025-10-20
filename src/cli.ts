@@ -19,24 +19,20 @@ const program = new Command()
  */
 async function createSkillForPackage(
   skillDirName: string,
-  skillDisplayName: string,
-  scope: 'project' | 'user',
-  force: boolean = false
+  packageName: string,
+  scope: 'current' | 'user',
+  force: boolean = false,
+  description?: string
 ): Promise<string> {
   const creator = new SkillCreator()
 
-  // Extract package name from skillDirName if it's in format "package@version"
-  // Otherwise, use the skillDirName as is
-  const lastAtSignIndex = skillDirName.lastIndexOf('@')
-  const packageName =
-    lastAtSignIndex > 0 ? skillDirName.substring(0, lastAtSignIndex) : skillDirName
-
   const createOptions: CreateSkillOptions = {
-    packageName: packageName, // Extract package name from skillDirName
+    packageName: packageName, // Use the user-provided package name directly
     path: scope === 'user' ? undefined : '.claude/skills',
-    storage: scope,
+    scope: scope, // Map 'current' to 'project' for internal storage
     noInitDocs: true, // Docs are downloaded in a separate step in the new flow
     force: force, // Pass force option to SkillCreator
+    description: description, // Pass description option to SkillCreator
   }
 
   console.log(gradient('cyan', 'magenta')('\n🚀 Creating skill...'))
@@ -69,18 +65,20 @@ program
 // Add create-cc-skill command
 program
   .command('create-cc-skill')
-  .requiredOption('--scope <scope>', 'Storage scope (project or user)')
+  .requiredOption('--scope <scope>', 'Storage scope (user or current)')
+  .option('--name <name>', 'Package name for the skill')
   .option('--interactive', 'Enable interactive confirmation prompts')
   .option('--force', 'Force overwrite existing files in the skill directory')
+  .option('--description <description>', 'Custom description for the skill')
   .argument('<skill_dir_name>', 'The name of the skill directory to create')
   .action(async (skillDirName, options) => {
     try {
-      const { scope, interactive, force } = options
+      const { scope, interactive, force, description, name } = options
 
       // Import inquirer for interactive prompts
       const { default: inquirer } = await import('inquirer')
 
-      let finalSkillName = skillDirName
+      let finalSkillName = name || skillDirName
 
       if (interactive) {
         // 1. 确认存储位置
@@ -101,34 +99,36 @@ program
           process.exit(0)
         }
 
-        // 2. 询问技能命名
-        const { skillNameConfirmed } = await inquirer.prompt([
-          {
-            type: 'confirm',
-            name: 'skillNameConfirmed',
-            message: `Use '${skillDirName}' as the skill name?`,
-            default: true,
-          },
-        ])
-
-        if (!skillNameConfirmed) {
-          const { customSkillName } = await inquirer.prompt([
+        // 2. 如果没有提供--name参数，询问包名
+        if (!name) {
+          const { packageNameConfirmed } = await inquirer.prompt([
             {
-              type: 'input',
-              name: 'customSkillName',
-              message: 'Enter a new skill name:',
-              validate: (input) => input.trim() !== '' || 'Skill name cannot be empty',
+              type: 'confirm',
+              name: 'packageNameConfirmed',
+              message: `Use '${skillDirName}' as the package name?`,
+              default: true,
             },
           ])
-          finalSkillName = customSkillName.trim()
+
+          if (!packageNameConfirmed) {
+            const { customPackageName } = await inquirer.prompt([
+              {
+                type: 'input',
+                name: 'customPackageName',
+                message: 'Enter the package name:',
+                validate: (input) => input.trim() !== '' || 'Package name cannot be empty',
+              },
+            ])
+            finalSkillName = customPackageName.trim()
+          }
         }
 
         // 3. 确认最终配置
         console.log('\nFinal Configuration:')
         console.log(`- Skill directory name: ${skillDirName}`)
-        console.log(`- Skill display name: ${finalSkillName}`)
+        console.log(`- Package name: ${finalSkillName}`)
         console.log(
-          `- Storage location: ${scope === 'project' ? './.claude/skills/' : '~/.claude/skills/'}`
+          `- Storage location: ${scope === 'current' ? './.claude/skills/' : '~/.claude/skills/'}`
         )
 
         const { confirmFinal } = await inquirer.prompt([
@@ -150,8 +150,9 @@ program
       const skillPath = await createSkillForPackage(
         skillDirName,
         finalSkillName,
-        scope as 'project' | 'user',
-        force
+        scope,
+        force,
+        description
       )
       console.log(`Skill created successfully at: ${skillPath}`)
     } catch (error) {

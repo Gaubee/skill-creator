@@ -47,7 +47,7 @@ export interface CreateSkillOptions {
   description?: string
   context7Id?: string
   noInitDocs?: boolean
-  storage?: 'project' | 'user'
+  scope?: 'current' | 'user' | 'project'
   version?: string
   force?: boolean
 }

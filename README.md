@@ -39,8 +39,11 @@ skill-creator search "react query"
 # Get package information
 skill-creator get-info @tanstack/react-query
 
-# Create skill with interactive prompts
-skill-creator create-cc-skill --interactive @tanstack/react-query@5
+# Create skill with custom package name (recommended)
+skill-creator create-cc-skill --scope current --name "@tanstack/react-query" --description "React Query for data fetching" @tanstack/react-query@5
+
+# Create skill with interactive prompts (requires --scope)
+skill-creator create-cc-skill --scope current --interactive --description "React Query for data fetching" @tanstack/react-query@5
 
 # Download documentation (automatically builds search index)
 skill-creator download-context7 --package @tanstack/react-query /tanstack/react-query
@@ -71,9 +74,11 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
 
 ### Options
 
-- `--scope <user|project>`: Storage location for skills
+- `--scope <user|current>`: Storage location for skills (required)
+- `--name <name>`: Package name for the skill (recommended)
 - `--pwd <path>`: Working directory for skill operations
 - `--package <name>`: Use package name to find skill directory
+- `--description <description>`: Custom description for the skill
 - `--force`: Force overwrite existing files
 - `--skip-chroma-indexing`: Skip automatic ChromaDB index building
 - `--interactive`: Enable interactive prompts
@@ -92,9 +97,13 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
    skill-creator get-info zustand
    ```
 
-3. **Create Skill**: Set up skill directory with interactive prompts
+3. **Create Skill**: Set up skill directory (requires --scope, recommended to use --name)
    ```bash
-   skill-creator create-cc-skill --interactive --scope project zustand
+   # With custom package name (recommended)
+   skill-creator create-cc-skill --scope current --name zustand --description "Zustand state management"
+   
+   # With interactive prompts
+   skill-creator create-cc-skill --scope current --interactive zustand
    ```
 
 4. **Download Documentation**: Get Context7 docs with automatic indexing

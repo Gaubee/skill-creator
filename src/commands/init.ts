@@ -53,12 +53,12 @@ export async function init(args: string[]): Promise<void> {
 
   // Non-interactive mode if scope is provided
   if (options.scope) {
-    if (options.scope === 'user' || options.scope === 'project') {
+    if (options.scope === 'user') {
       location = 'user'
     } else if (options.scope === 'current') {
       location = 'current'
     } else {
-      console.error('❌ Invalid scope value. Use: user, project, or current')
+      console.error('❌ Invalid scope value. Use: user or current')
       process.exit(1)
     }
   } else {

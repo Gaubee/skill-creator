@@ -1,6 +1,6 @@
 {
   "name": "skill-creator",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Create claude-code-skills with documentation management",
   "bin": {
     "skill-creator": "dist/cli.js"
@@ -42,6 +42,8 @@
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.10.2",
     "@vitest/coverage-v8": "^2.1.9",
+    "@vitest/ui": "^3.2.4",
+    "jsdom": "^27.0.1",
     "prettier": "^3.4.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
