@@ -47,7 +47,11 @@ export async function searchContent(args: string[]): Promise<void> {
   searchOptions.minScoreForPreview = 0.3
 
   // Perform search
-  const results = await searchEngine.search(options.query, searchOptions as any)
+  const results = await searchEngine.search(
+    options.query,
+    searchOptions.topK || 5,
+    searchOptions.where
+  )
 
   // Display results
   console.log(`\n🔍 Searching in skill...`)
