@@ -7,7 +7,6 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import type { SkillConfig } from '../types/index.js'
 
 export const SkillConfigSchema = z.object({
-  name: z.string(),
   package_name: z.string().optional(),
   context7_library_id: z.string().optional(),
 })
@@ -17,7 +16,7 @@ export type SkillConfigInput = z.input<typeof SkillConfigSchema>
 export class Config {
   static createDefault(options: { skillName: string; context7Id?: string }): SkillConfig {
     return {
-      name: options.skillName,
+      packageName: options.skillName,
       context7LibraryId: options.context7Id || '',
     }
   }
@@ -30,7 +29,6 @@ export class Config {
 
       // Convert snake_case to camelCase
       return {
-        name: config.name,
         packageName: config.package_name,
         context7LibraryId: config.context7_library_id,
       }
@@ -42,7 +40,6 @@ export class Config {
   static save(config: SkillConfig, filePath: string): void {
     // Convert camelCase to snake_case for JSON
     const raw = {
-      name: config.name,
       package_name: config.packageName,
       context7_library_id: config.context7LibraryId || '',
     }

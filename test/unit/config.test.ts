@@ -22,7 +22,7 @@ describe('Config', () => {
         context7Id: '/test/docs',
       })
 
-      expect(config.name).toBe('test-skill')
+      expect(config.packageName).toBe('test-skill')
       expect(config.context7LibraryId).toBe('/test/docs')
     })
 
@@ -31,7 +31,7 @@ describe('Config', () => {
         skillName: 'test-skill',
       })
 
-      expect(config.name).toBe('test-skill')
+      expect(config.packageName).toBe('test-skill')
       expect(config.context7LibraryId).toBe('')
     })
   })

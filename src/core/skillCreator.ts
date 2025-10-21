@@ -11,7 +11,6 @@ import { Config } from '../utils/config.js'
 
 // Internal config interface used during skill creation
 interface SkillCreateConfig {
-  name: string
   packageName: string
   context7LibraryId?: string
 }
@@ -81,7 +80,6 @@ export class SkillCreator {
 
       // Create basic config.json (minimal configuration)
       const skillConfig: SkillCreateConfig = {
-        name: config.name,
         packageName: options.packageName,
         context7LibraryId:
           options.context7Id ?? `/${options.packageName.replace('@', '').replace('/', '__')}/docs`,
@@ -126,7 +124,6 @@ export class SkillCreator {
 
   private createBasicConfig(skillDir: string, config: SkillCreateConfig): void {
     const basicConfig = {
-      name: config.name,
       package_name: config.packageName,
       context7_library_id: config.context7LibraryId || '',
     }
@@ -150,11 +147,11 @@ export class SkillCreator {
 
     // Replace template variables with options data
     templateContent = templateContent
-      .replace(/{{NAME}}/g, config.name)
+      .replace(/{{NAME}}/g, config.packageName)
       .replace(
         /{{DESCRIPTION}}/g,
         options.description ||
-          `Specialized ${config.name} expert assistant providing comprehensive technical support`
+          `Specialized ${config.packageName} expert assistant providing comprehensive technical support`
       )
       .replace(/{{PACKAGE_NAME}}/g, config.packageName)
       .replace(/{{LICENSE}}/g, 'MIT')

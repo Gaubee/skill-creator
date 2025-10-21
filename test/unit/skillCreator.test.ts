@@ -58,9 +58,8 @@ describe('SkillCreator', () => {
       // Check config - simplified structure
       const configPath = join(result.skillPath!, 'config.json')
       const config = Config.load(configPath)
-      expect(config.name).toContain('@tanstack__router@1')
-      expect(config.context7LibraryId).toBe('/tanstack/router/docs')
       expect(config.packageName).toBe('@tanstack/router')
+      expect(config.context7LibraryId).toBe('/tanstack/router/docs')
     })
 
     it('should handle storage in user directory', async () => {
@@ -159,9 +158,9 @@ describe('SkillCreator', () => {
       const skillMdPath = join(result.skillPath!, 'SKILL.md')
       const content = readFileSync(skillMdPath, 'utf-8')
 
-      expect(content).toContain('name: test-docs@')
+      expect(content).toContain('name: test-docs')
       expect(content).toContain('Test documentation skill')
-      expect(content).toContain('You are a specialized test-docs@')
+      expect(content).toContain('You are a specialized test-docs')
       expect(content).toContain('Search Documentation Knowledge')
       expect(content).toContain('Search Mode Selection')
       expect(content).toContain('## Usage Guidelines')
@@ -202,9 +201,8 @@ describe('SkillCreator', () => {
       const configPath = join(result.skillPath!, 'config.json')
       const config = Config.load(configPath)
 
-      expect(config.name).toContain('test-config@')
-      expect(config.context7LibraryId).toBe('/test-config/docs')
       expect(config.packageName).toBe('test-config')
+      expect(config.context7LibraryId).toBe('/test-config/docs')
     })
   })
 
@@ -223,7 +221,7 @@ describe('SkillCreator', () => {
 
       const configPath = join(result.skillPath!, 'config.json')
       const config = Config.load(configPath)
-      expect(config.name).toContain('test-version@2')
+      expect(config.packageName).toBe('test-version')
     })
   })
 

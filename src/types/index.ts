@@ -3,7 +3,6 @@
  */
 
 export interface SkillConfig {
-  name: string
   packageName?: string
   context7LibraryId?: string
 }
