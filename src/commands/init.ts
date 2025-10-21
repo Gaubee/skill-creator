@@ -28,13 +28,20 @@ async function installSubagent(location: 'current' | 'user'): Promise<void> {
   const templatePath = resolve(import.meta.dirname, '../../templates/skill-creator.md')
   const templateContent = readFileSync(templatePath, 'utf-8')
 
+  // Inject DEFAULT_SCOPE if the template has the placeholder
+  let finalTemplateContent = templateContent
+  if (templateContent.includes('{{DEFAULT_SCOPE}}')) {
+    finalTemplateContent = templateContent.replace(/{{DEFAULT_SCOPE}}/g, location)
+  }
+
   // Write skill-creator.md file
   const targetFile = join(targetDir, 'skill-creator.md')
-  writeFileSync(targetFile, templateContent)
+  writeFileSync(targetFile, finalTemplateContent)
 
   const { default: gradient } = await import('gradient-string')
   console.log(gradient('green', 'cyan')('\n✅ Skill-creator subagent installed successfully!'))
   console.log(`📍 Location: ${targetFile}`)
+  console.log(`📁 Default scope: ${location}`)
 
   if (location === 'user') {
     console.log('💡 This makes skill-creator available in all Claude Code sessions')

@@ -141,7 +141,7 @@ program
           {
             type: 'confirm',
             name: 'confirmLocation',
-            message: `Create skill in ${scope === 'project' ? './.claude/skills/' : '~/.claude/skills/'}?`,
+            message: `Create skill in ${scope === 'current' ? './.claude/skills/' : '~/.claude/skills/'}?`,
             default: true,
           },
         ])
@@ -217,9 +217,17 @@ program
 program
   .command('init')
   .description('Install skill-creator as subagent (interactive mode)')
-  .action(async () => {
+  .option('--scope <scope>', 'Storage scope (user or current)')
+  .action(async (options) => {
     const { runScript } = await import('./core/runScript.js')
-    await runScript('init', [])
+    const args = []
+
+    // Pass scope to init command
+    if (options.scope) {
+      args.push('--scope', options.scope)
+    }
+
+    await runScript('init', args)
   })
 
 // Add init command to install subagents (non-interactive version)

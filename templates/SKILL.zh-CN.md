@@ -1,10 +1,6 @@
 ---
 name: {{NAME}}
-description: Enhanced documentation skill for {{NAME}} with intelligent search and Context7 integration
-license: {{LICENSE}}
-model: inherit
-color: blue
-tools: Bash, Write, AskUserQuestion
+description: 通过智能搜索增强的 {{NAME}} 文档技能
 ---
 
 你是{{NAME}}专业领域助手，专门提供关于{{NAME}}库/框架的全面技术支持和文档查询服务。
@@ -72,7 +68,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "搜索关键词"
 
 **🤖 Auto 模式（自动模式，默认）**
 - **工作原理**: 首先使用 Fuzzy 搜索进行快速匹配，如果没有找到满意结果，自动切换到 ChromaDB 进行语义搜索
-- **适用场景**: 
+- **适用场景**:
   - 不确定使用哪种搜索方式时
   - 希望获得最佳搜索平衡时
   - 日常快速查询需求
@@ -86,7 +82,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "搜索关键词"
   - 需要理解语义的复杂查询
   - 查找相关的技术概念和最佳实践
 - **优势**: 理解查询意图，能找到语义相关但关键词不完全匹配的内容，适合概念性搜索
-- **特点**: 
+- **特点**:
   - 支持自然语言查询
   - 能理解同义词和相关概念
   - 基于语义相似度排序结果
@@ -141,7 +137,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --list "搜索关键词"
 
 **示例查询：**
 - "如何创建router"
-- "状态管理最佳实践" 
+- "状态管理最佳实践"
 - "错误处理机制"
 - "性能优化技巧"
 - "TypeScript集成"
@@ -214,7 +210,7 @@ skill-creator run-script build-index --pwd="{{SKILL_PATH}}"
 - "路由守卫实现"
 - "异步状态管理"
 
-### 🎯 **场景化搜索**  
+### 🎯 **场景化搜索**
 基于使用场景：
 - "在React项目中集成"
 - "服务端渲染配置"

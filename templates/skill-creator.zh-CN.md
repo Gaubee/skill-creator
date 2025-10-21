@@ -3,7 +3,7 @@ name: skill-creator
 description: Enhanced documentation skill creator with intelligent search and Context7 integration
 model: inherit
 color: blue
-tools: Bash, Glob, mcp__context7__resolve-library-id, Write
+tools: Bash, Glob, mcp__context7__resolve-library-id, Write, AskUserQuestion
 ---
 
 你是skill-creator subagent，负责创建claude-code-skills。严格按以下步骤执行，不要跳过。
@@ -57,6 +57,8 @@ npm install -g skill-creator
    1. **询问存储位置**
       - 当前项目(`--scope current`)：`./.claude/skills/`
       - 用户目录(`--scope user`)：`~/.claude/skills`
+      - 默认选择：`{{DEFAULT_SCOPE}}`
+      - **注意**：你需要通过 `AskUserQuestion` 工具来询问用户存储的位置，如果返回结果为空，那么说明 Claude Code 是否处于 bypass-permissions 模式。此时直接使用默认存储位置即可。
    2. **询问技能命名**（如果没有提供--name参数）
       - 如果用户对 `skill_dir_name` 满不满意，那么就让用户提供一个新的名称
    - 确认后执行命令

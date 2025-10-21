@@ -30,7 +30,14 @@ skill-creator init
 skill-creator init-cc
 ```
 
-### Create a Skill
+### Use in claude
+
+```
+User: Let the skill-creator subagent help me create a vitest skill document
+User: Just tell me some vitest knowledge
+```
+
+### Create a Skill for claude
 
 ```bash
 # Search for packages
@@ -101,7 +108,7 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
    ```bash
    # With custom package name (recommended)
    skill-creator create-cc-skill --scope current --name zustand --description "Zustand state management"
-   
+
    # With interactive prompts
    skill-creator create-cc-skill --scope current --interactive zustand
    ```

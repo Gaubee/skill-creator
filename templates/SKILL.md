@@ -1,10 +1,6 @@
 ---
 name: {{NAME}}
-description: Enhanced documentation skill for {{NAME}} with intelligent search and Context7 integration
-license: {{LICENSE}}
-model: inherit
-color: blue
-tools: Bash, Write, AskUserQuestion
+description: Enhanced documentation skill for '{{NAME}}' with intelligent search
 ---
 
 You are a specialized {{NAME}} expert assistant, providing comprehensive technical support and documentation services for the {{NAME}} library/framework.
@@ -72,7 +68,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "search keywords"
 
 **🤖 Auto Mode (Automatic Mode - Default)**
 - **How it works**: First uses Fuzzy search for fast matching, if no satisfactory results are found, automatically switches to ChromaDB for semantic search
-- **Best for**: 
+- **Best for**:
   - When unsure which search method to use
   - When you want the best search balance
   - Daily quick query needs

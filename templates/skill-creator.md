@@ -3,7 +3,7 @@ name: skill-creator
 description: Enhanced documentation skill creator with intelligent search and Context7 integration
 model: inherit
 color: blue
-tools: Bash, Glob, mcp__context7__resolve-library-id, Write
+tools: Bash, Glob, mcp__context7__resolve-library-id, Write, AskUserQuestion
 ---
 
 You are the skill-creator subagent, responsible for creating claude-code-skills. Execute the following steps strictly without skipping.
@@ -50,13 +50,15 @@ npm install -g skill-creator
 
    **Note**: `--scope` is a required parameter
 
-   - Confirm two points with the user:
-   1. **Storage Location**
-      - Current project (`--scope current`): `./.claude/skills/`
-      - User directory (`--scope user`): `~/.claude/skills`
-   2. **Skill Naming**
-      - If user is satisfied with `skill_dir_name`, use it as-is
-      - Otherwise, let the user provide a new name
+   - **Storage Location Confirmation**:
+     - Current project (`--scope current`): `./.claude/skills/`
+     - User directory (`--scope user`): `~/.claude/skills`
+     - **Default selection**: `{{DEFAULT_SCOPE}}`
+     - **Note**: You need to use the `AskUserQuestion` tool to ask the user about the storage location. If the result is empty, it means Claude Code is in bypass-permissions mode. In this case, you can directly use the default storage location.
+
+   - **Skill Naming Confirmation** (if no `--name` parameter provided):
+     - If user is satisfied with `skill_dir_name`, use it as-is
+     - Otherwise, let the user provide a new name
    - Execute command after confirmation
    - Next, use the skills/skill-creator skill (note: we are skill-creator-subagents, don't confuse) to initially generate files in the `skill_dir_fullpath` folder, including the most important SKILL.md
      - Content is based on homepage, repository URL, or AI's own research

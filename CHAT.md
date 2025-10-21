@@ -150,6 +150,12 @@ SKILL.zh-CN.md 中缺乏完善的 search-skill 介绍，特别是 --mode=auto|ch
 
 ---
 
+我更新了 `templates/skill-creator.zh-CN.md`：
+1. 这里需要你注入`DEFAULT_SCOPE`。这个值就是在 `init` 的时候带过来的参数。
+2. 我初步加入了`bypass-permissions`的支持。你帮我看一下，整个流程，还有哪里需要加入`bypass-permissions`的支持？
+
+---
+
 请基于 `AGENTS.md` 和 `templates/skill-creator.zh-CN.md` 这两个文件去设计我们的单元测试。
 
 1. 修复并优化测试，确保完全通过
@@ -159,8 +165,9 @@ SKILL.zh-CN.md 中缺乏完善的 search-skill 介绍，特别是 --mode=auto|ch
 ---
 
 接下来我们需要优化整个项目的架构：
+首先 `AGENTS.md` 和 `templates/skill-creator.zh-CN.md` 这两个文件是我们整个系统的内核。
 
-1. 首先先忽略现有项目代码，从**第一行原理**出发，遵从**SOLID**，设计一种**面向过程**的文件架构
+1. 首先先忽略现有项目代码，从 **第一性原理** 出发，遵从 **SOLID** ，设计一种 **面向过程** 的文件架构
 2. 参考已有代码文件，将已有的代码拆分组合，更改合适的命名规则，归置到应有的文件中。在这期间，几乎不修改测试代码，确保“功能测试”能完全通过。
    > 有些测试可能测试的是class，但因为我们面向过程，所以可能失效，这类测试就先忽略。
 3. 整理测试文件，使得测试文件也能契合新版的文件架构。
@@ -178,10 +185,16 @@ SKILL.zh-CN.md 中缺乏完善的 search-skill 介绍，特别是 --mode=auto|ch
 
 2. 优化任务：
    - `--file-name`(`string`): 单一职责：文件名称。优先级高于`--title`生成的Filename
-   - `--file-content`(`string[]`): 单一职责：文件内容。优先级高于`--content`和`--title`生成的FileContent。传入多个`--file-content`，会使用`\n\n`进行拼接。
+   - `--file-content`(`string[]`): 单一职责：文件内容。优先级高于`--content`和`--title`生成的FileContent。传入多个`--file-content`，会使用`\n`进行拼接。
    - `--file-content-in`(`bool`): 由于fileContent的格式可能比较复杂，如果直接使用`--file-content`就需要考虑转义字符的问题，因此需要支持通过stdin来接收输入，也就是支持管道输入。比如`cat file.md | skill-creator add-skill --file-name="xxx.md" --file-content-in`。它的优先级高于`--file-content`，或者说，二者只能出现一个，否则意味着存在歧意。
-   - `--file`: 提供一个已经存在的文件，可以提取出隐式的`--file-name`和`--file-content`，但是优先级低于显式的`--file-name`和`--file-content`
-   - 将`--title`和`--content`标记成“不建议”，并提供建议直接使用`--file-name`和`--file-content`，但是仍然提供长期支持，因为这两个参数符合用户直觉，而`--file-name`和`--file-content`符合程序设计
+   - `--file`(`string`): 提供一个已经存在的文件，可以提取出隐式的`--file-name`和`--file-content`，但是优先级低于显式的`--file-name`和`--file-content`
+   - `--content`: 将类型从`string`升级成`string[]`，从而更好地支持多行。
+   - 在`--title`和`--content`两个参数的介绍中，增加建议：直接使用`--file-name`和`--file-content`会更加准确。但是这两个参数仍然提供长期支持，因为这两个参数符合用户直觉，而`--file-name`和`--file-content`符合程序设计
 
 3. 收尾任务：
-   - 更新 AGENTS.md 和
+   - 更新 `README.md` 、 `AGENTS.md` 、 `skill-creator.zh-CN.md` 、 `SKILL.zh-CN.md`:
+     - `README.md`: 是给人类看的，优先介绍`--title`、`--content`、`--file`
+     - `AGENTS.md`: 是我们的设计源头，需要完整地详细地罗列所有的参数和含义
+     - `skill-creator.zh-CN.md` 、 `SKILL.zh-CN.md`: 是给AI看的，优先介绍`--file-name`、`--file-content`、`--file-content-in`、`--file`
+   - 更新测试
+   - 确保测试的覆盖率
