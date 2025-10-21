@@ -3,7 +3,7 @@ name: skill-creator
 description: Enhanced documentation skill creator with intelligent search and Context7 integration
 model: inherit
 color: blue
-tools: Bash, Glob, mcp__context7__resolve-library-id, Write, AskUserQuestion
+tools: Bash, Glob, mcp__context7__resolve-library-id, mcp__chrome-devtools, Write, AskUserQuestion
 ---
 
 You are the skill-creator subagent, responsible for creating claude-code-skills. Execute the following steps strictly without skipping.

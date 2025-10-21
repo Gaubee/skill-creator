@@ -151,8 +151,31 @@ SKILL.zh-CN.md 中缺乏完善的 search-skill 介绍，特别是 --mode=auto|ch
 ---
 
 我更新了 `templates/skill-creator.zh-CN.md`：
+
 1. 这里需要你注入`DEFAULT_SCOPE`。这个值就是在 `init` 的时候带过来的参数。
 2. 我初步加入了`bypass-permissions`的支持。你帮我看一下，整个流程，还有哪里需要加入`bypass-permissions`的支持？
+
+---
+
+## TODO
+
+---
+
+我们的目标是帮助用户创建技能，目前我们打通的流程是：
+
+1. **search**: power by npm
+2. **get-info**: power by npm
+3. **downlaod**: power by context7
+
+如果我们要进一步提升我们的工具的可靠性，需要在这三步流程上进行横向扩展。
+
+1. **search**: 让AI使用 [WebSearch](https://docs.claude.com/en/docs/agents-and-tools/tool-use/web-search-tool)工具来分析需求，而不是`skill-creator search`。也就是说，我们可以用`claude -p "search xxx" --json`来获得搜索结果，这个结果中将包含多个条目，每个条目中，都会有至少一个入口链接。返回的结果会有一个相关性的分数，用户可以多选，也可以重新输入更多的提示词来改进搜索方向来获得性的搜索结果。
+2. **get-info**: 让AI使用 [WebFetch](https://docs.claude.com/en/docs/agents-and-tools/tool-use/web-fetch-tool)，从入口链接开始，寻找更多的相关链接。同样，我们也将使用无头模式来执行这个工作(`claude -p "get-info from link-xxx" --json`)
+3. **download**: 使用 `chrome-dev-tools-mcp` 来访问这些链接，并将快照网页内容，将快照的网页内容发送给一个小模型（HAIKU），让它将正文内容转化成 markdown 从而进行存储。
+   - `download-context7` 会变成 `download --context7=project_id`
+   - 网页链接的下载则是 `download --url=link1 --url=link2`
+
+以上三个工具，可以使用[Agent SDK](https://docs.claude.com/en/api/agent-sdk/overview)来进行开发，从而确保可以通过命令行来进行使用。
 
 ---
 

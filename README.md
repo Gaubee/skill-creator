@@ -2,40 +2,68 @@
 
 A TypeScript/Node.js CLI tool for creating claude-code-skills with intelligent documentation management and Context7 integration.
 
-## Prerequisites
+
+## Features
+
+- 🚀 **Automated Skill Creation**: Generate skills with proper folder naming (`package@version` format)
+- 📚 **Context7 Integration**: Download and slice documentation from Context7 with automatic project ID detection
+- 🔍 **Intelligent Search**: ChromaDB-powered semantic search with automatic indexing
+- 💾 **Dynamic Content Management**: Add custom knowledge with deduplication
+- 🛠️ **Modern TypeScript**: Full type safety with ESM modules
+- 🎯 **Interactive CLI**: Professional command-line interface with inquirer prompts
+- 📦 **Flexible Storage**: Store skills in project or user directory
+
+## Installation
+
+### Install skill-creator
+
+```bash
+npm install -g skill-creator
+```
+
+### Verify Installation
+
+After installation, you can verify that the MCP servers are working:
+
+```bash
+# Check if Context7 MCP is accessible
+skill-creator --help
+
+# The help should show all commands if MCP servers are properly configured
+```
+
+### Prerequisites
 
 Before installing skill-creator, make sure you have the required MCP (Model Context Protocol) servers installed for full functionality:
 
-### Required MCP Servers
+<details>
+<summary>Context7 MCP - For downloading and managing documentation</summary>
 
-1. <summary>**Context7 MCP** - For downloading and managing documentation</summary>
-   <detail>
+```bash
+# Install from npm
+npm install -g @upstash/context7-mcp
 
-   ```bash
-   # Install from npm
-   npm install -g @upstash/context7-mcp
+# Or follow installation guide: https://github.com/upstash/context7?tab=readme-ov-file
 
-   # Or follow installation guide: https://github.com/upstash/context7?tab=readme-ov-file
-   ```
+```
 
-   </detail>
+</details>
 
-2. <summary>**Chrome DevTools MCP** - For browser automation and web scraping</summary>
-   <detail>
+<details>
+<summary>Chrome DevTools MCP - For browser automation and web scraping</summary>
 
-   ```bash
-   # Install from npm
-   npm install -g @chromedevtools/chrome-devtools-mcp
+```bash
+# Install from npm
+npm install -g @chromedevtools/chrome-devtools-mcp
 
-   # Or follow installation guide: https://github.com/ChromeDevTools/chrome-devtools-mcp?tab=readme-ov-file
+# Or follow installation guide: https://github.com/ChromeDevTools/chrome-devtools-mcp?tab=readme-ov-file
 
-   ```
+```
 
-   </detail>
+</details>
 
-### <summary>MCP Server Configuration</summary>
-
-<detail>
+<details>
+<summary>MCP Server Configuration</summary>
 
 After installing the MCP servers, you need to configure them in your Claude Code settings. Add the following to your Claude Code configuration:
 
@@ -54,42 +82,9 @@ After installing the MCP servers, you need to configure them in your Claude Code
 }
 ```
 
-</detail>
-
 > **Note**: The MCP servers are required for full functionality. Without them, some features like Context7 documentation downloading and web-based research may not work properly.
 
-## Features
-
-- 🚀 **Automated Skill Creation**: Generate skills with proper folder naming (`package@version` format)
-- 📚 **Context7 Integration**: Download and slice documentation from Context7 with automatic project ID detection
-- 🔍 **Intelligent Search**: ChromaDB-powered semantic search with automatic indexing
-- 💾 **Dynamic Content Management**: Add custom knowledge with deduplication
-- 🛠️ **Modern TypeScript**: Full type safety with ESM modules
-- 🎯 **Interactive CLI**: Professional command-line interface with inquirer prompts
-- 📦 **Flexible Storage**: Store skills in project or user directory
-
-## Installation
-
-### Prerequisites Check
-
-Before installing skill-creator, ensure you have the required MCP servers installed as described in the [Prerequisites](#prerequisites) section.
-
-### Install skill-creator
-
-```bash
-npm install -g skill-creator
-```
-
-### Verify Installation
-
-After installation, you can verify that the MCP servers are working:
-
-```bash
-# Check if Context7 MCP is accessible
-skill-creator --help
-
-# The help should show all commands if MCP servers are properly configured
-```
+</details>
 
 ## Quick Start
 
