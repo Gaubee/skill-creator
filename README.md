@@ -2,6 +2,62 @@
 
 A TypeScript/Node.js CLI tool for creating claude-code-skills with intelligent documentation management and Context7 integration.
 
+## Prerequisites
+
+Before installing skill-creator, make sure you have the required MCP (Model Context Protocol) servers installed for full functionality:
+
+### Required MCP Servers
+
+1. <summary>**Context7 MCP** - For downloading and managing documentation</summary>
+   <detail>
+
+   ```bash
+   # Install from npm
+   npm install -g @upstash/context7-mcp
+
+   # Or follow installation guide: https://github.com/upstash/context7?tab=readme-ov-file
+   ```
+
+   </detail>
+
+2. <summary>**Chrome DevTools MCP** - For browser automation and web scraping</summary>
+   <detail>
+
+   ```bash
+   # Install from npm
+   npm install -g @chromedevtools/chrome-devtools-mcp
+
+   # Or follow installation guide: https://github.com/ChromeDevTools/chrome-devtools-mcp?tab=readme-ov-file
+
+   ```
+
+   </detail>
+
+### <summary>MCP Server Configuration</summary>
+
+<detail>
+
+After installing the MCP servers, you need to configure them in your Claude Code settings. Add the following to your Claude Code configuration:
+
+```json
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_CONTEXT7_API_KEY"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    }
+  }
+}
+```
+
+</detail>
+
+> **Note**: The MCP servers are required for full functionality. Without them, some features like Context7 documentation downloading and web-based research may not work properly.
+
 ## Features
 
 - 🚀 **Automated Skill Creation**: Generate skills with proper folder naming (`package@version` format)
@@ -14,8 +70,25 @@ A TypeScript/Node.js CLI tool for creating claude-code-skills with intelligent d
 
 ## Installation
 
+### Prerequisites Check
+
+Before installing skill-creator, ensure you have the required MCP servers installed as described in the [Prerequisites](#prerequisites) section.
+
+### Install skill-creator
+
 ```bash
 npm install -g skill-creator
+```
+
+### Verify Installation
+
+After installation, you can verify that the MCP servers are working:
+
+```bash
+# Check if Context7 MCP is accessible
+skill-creator --help
+
+# The help should show all commands if MCP servers are properly configured
 ```
 
 ## Quick Start
@@ -34,6 +107,7 @@ skill-creator init-cc
 
 ```
 User: Let the skill-creator subagent help me create a vitest skill document
+
 User: Just tell me some vitest knowledge
 ```
 
@@ -63,21 +137,21 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
 
 ### Core Commands
 
-| Command | Description |
-|---------|-------------|
-| `init` | Install skill-creator as subagent (interactive mode) |
-| `init-cc` | Install skill-creator as subagent in user directory |
-| `search <keywords>` | Search npm packages |
-| `get-info <package>` | Get detailed package information |
-| `create-cc-skill <name>` | Create a new skill directory |
+| Command                  | Description                                          |
+| ------------------------ | ---------------------------------------------------- |
+| `init`                   | Install skill-creator as subagent (interactive mode) |
+| `init-cc`                | Install skill-creator as subagent in user directory  |
+| `search <keywords>`      | Search npm packages                                  |
+| `get-info <package>`     | Get detailed package information                     |
+| `create-cc-skill <name>` | Create a new skill directory                         |
 
 ### Content Management
 
-| Command | Description |
-|---------|-------------|
+| Command                          | Description                               |
+| -------------------------------- | ----------------------------------------- |
 | `download-context7 <project_id>` | Download and slice Context7 documentation |
-| `search-skill <query>` | Search in skill knowledge base |
-| `add-skill` | Add custom knowledge to skill |
+| `search-skill <query>`           | Search in skill knowledge base            |
+| `add-skill`                      | Add custom knowledge to skill             |
 
 ### Options
 
@@ -95,16 +169,19 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
 ### Complete Skill Creation Workflow
 
 1. **Search Package**: Find the right package for your skill
+
    ```bash
    skill-creator search "state management"
    ```
 
 2. **Get Package Info**: Retrieve detailed information
+
    ```bash
    skill-creator get-info zustand
    ```
 
 3. **Create Skill**: Set up skill directory (requires --scope, recommended to use --name)
+
    ```bash
    # With custom package name (recommended)
    skill-creator create-cc-skill --scope current --name zustand --description "Zustand state management"
@@ -114,11 +191,13 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
    ```
 
 4. **Download Documentation**: Get Context7 docs with automatic indexing
+
    ```bash
    skill-creator download-context7 --package zustand /zustand
    ```
 
 5. **Add Custom Knowledge**: Enhance with your own content
+
    ```bash
    skill-creator add-skill --package zustand --title "Best Practices" --content "Your custom notes"
    ```
@@ -144,6 +223,17 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
 
 ## Development
 
+### Prerequisites
+
+Make sure you have the MCP servers installed and configured before development:
+
+```bash
+# Verify MCP servers are available
+npm list -g @upstash/context7-mcp @chromedevtools/chrome-devtools-mcp
+```
+
+### Development Setup
+
 ```bash
 # Install dependencies
 npm install
@@ -165,6 +255,18 @@ npm run lint
 
 # Type check
 npm run type-check
+```
+
+### Testing MCP Integration
+
+To test MCP server integration during development:
+
+```bash
+# Test Context7 integration
+skill-creator get-info @upstash/context7
+
+# Test Chrome DevTools integration
+skill-creator download-context7 --help
 ```
 
 ## Configuration
@@ -195,4 +297,4 @@ MIT
 
 ---
 
-*For detailed subagent usage, see `templates/skill-creator.md`*
+_For detailed subagent usage, see `templates/skill-creator.md`_
