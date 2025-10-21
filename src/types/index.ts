@@ -1,11 +1,4 @@
-/**
- * Core type definitions for skill creator
- */
-
-export interface SkillConfig {
-  packageName?: string
-  context7LibraryId?: string
-}
+export type { SkillConfig } from '../utils/config.js'
 
 export interface SearchResult {
   id: string
@@ -35,13 +28,10 @@ export interface ContentItem {
 }
 
 export interface CreateSkillOptions {
-  packageName: string
-  path?: string
-  description?: string
-  context7Id?: string
-  noInitDocs?: boolean
-  scope?: 'current' | 'user' | 'project'
-  version?: string
+  baseDir: string
+  skillDirname: string
+  skillName: string
+  skillDescription?: string
   force?: boolean
 }
 
@@ -49,7 +39,6 @@ export interface CreateSkillResult {
   created: boolean
   skillPath?: string
   message: string
-  docsInitialized: boolean
 }
 
 export interface UpdateContext7Result {

@@ -67,9 +67,9 @@ npm install -g skill-creator
      - 我们在 SKILL.md 中，主要包含两部分的内容：
      1. 介绍对于这个包基础信息：包括它的设计哲学和理念、解决什么问题、如何安装等基础信息。
      2. 介绍配套的工具如何在这个 `skill_dir_fullpath` 文件夹内使用：来搜索技能信息、更新技能、扩展技能信息
-        - `skill-creator --pwd={skill_dir_fullpath} search-skill "test query"` 查询知识点
-        - `skill-creator --pwd={skill_dir_fullpath} add-skill --title "T" --content "C"` 添加“用户知识点”
-        - `skill-creator --pwd={skill_dir_fullpath} download-context7 {project-id} --force`强制更新，会清空context7文件夹，重新切分知识点文件
+        - `skill-creator search-skill --pwd "{skill_dir_fullpath}" "test query"` 查询知识点
+        - `skill-creator add-skill --pwd "{skill_dir_fullpath}" --title "T" --content "C"` 添加“用户知识点”
+        - `skill-creator download-context7 --pwd "{skill_dir_fullpath}" {project-id} --force`强制更新，会清空context7文件夹，重新切分知识点文件
         - 注意，默认情况下，我们完全不需要去创建scripts文件夹，因为我们已经有 `skill-creator` 这个cli来替代scripts了。
 
 4. **获取Context7项目ID并下载文档**
@@ -81,14 +81,14 @@ npm install -g skill-creator
      - 从这个最佳条目中，提取出 **project-id** (即 'Context7-compatible library ID')。
    - 确认 project-id 后，执行下载：
      ```bash
-     skill-creator --pwd={skill_dir_fullpath} download-context7 {project-id}
+     skill-creator download-context7 --pwd "{skill_dir_fullpath}" {project-id}
      ```
      > 这里 `download-context7` 命令会下载 llms.txt，并将它切分成很多个知识点文件
 
 5. **测试搜索**
 
    ```bash
-   skill-creator --pwd={skill_dir_fullpath} search-skill "test query"
+   skill-creator search-skill --pwd "{skill_dir_fullpath}" "test query"
    ```
 
    - 第一次搜索，`search-skill` 命令会去构建索引

@@ -1,17 +1,24 @@
 # Skill Creator
 
-A TypeScript/Node.js CLI tool for creating claude-code-skills with intelligent documentation management and Context7 integration.
+A powerful composite tool for creating and managing Claude Code skills. It serves as both:
+
+1. **CLI Tool** - A TypeScript/Node.js command-line interface for skill management
+2. **Claude Code Subagent** - An intelligent agent that automates skill creation workflow
 
 
 ## Features
 
+### Core Capabilities
 - 🚀 **Automated Skill Creation**: Generate skills with proper folder naming (`package@version` format)
 - 📚 **Context7 Integration**: Download and slice documentation from Context7 with automatic project ID detection
 - 🔍 **Intelligent Search**: ChromaDB-powered semantic search with automatic indexing
 - 💾 **Dynamic Content Management**: Add custom knowledge with deduplication
+
+### CLI & Subagent
 - 🛠️ **Modern TypeScript**: Full type safety with ESM modules
 - 🎯 **Interactive CLI**: Professional command-line interface with inquirer prompts
-- 📦 **Flexible Storage**: Store skills in project or user directory
+- 🤖 **Subagent Mode**: Intelligent agent that handles the entire skill creation workflow
+- 📦 **Flexible Storage**: Store skills in project (`.claude/skills/`) or user directory (`~/.claude/skills`)
 
 ## Installation
 
@@ -88,38 +95,49 @@ After installing the MCP servers, you need to configure them in your Claude Code
 
 ## Quick Start
 
-### Install as Subagent (Recommended)
+### 1. Install as CLI Tool
 
 ```bash
-# Interactive installation
+npm install -g skill-creator
+```
+
+### 2. Setup for Claude Code
+
+```bash
+# Interactive installation - installs skill-creator to Claude Code
 skill-creator init
-
-# Non-interactive installation to user directory
-skill-creator init-cc
 ```
 
-### Use in claude
+### 3. Choose Your Usage Mode
+
+#### CLI Mode - Full Control
+Use commands directly for complete control over the skill creation process.
+
+#### Subagent Mode - Effortless
+Simply describe what you want, and let the subagent handle everything automatically.
 
 ```
-User: Let the skill-creator subagent help me create a vitest skill document
+User: Use skill-creator subagent to help me create a vitest skill
 
-User: Just tell me some vitest knowledge
+User: Tell me about vitest testing patterns
 ```
 
-### Create a Skill for claude
+The skill-creator subagent will handle the entire workflow automatically.
+
+### 4. Create a Skill by cli
 
 ```bash
 # Search for packages
 skill-creator search "react query"
 
-# Get package information
+# Get package information (Options)
 skill-creator get-info @tanstack/react-query
 
 # Create skill with custom package name (recommended)
-skill-creator create-cc-skill --scope current --name "@tanstack/react-query" --description "React Query for data fetching" @tanstack/react-query@5
+skill-creator create-cc-skill --scope user --name "@tanstack/react-query" --description "React Query for data fetching" @tanstack/react-query@5
 
-# Create skill with interactive prompts (requires --scope)
-skill-creator create-cc-skill --scope current --interactive --description "React Query for data fetching" @tanstack/react-query@5
+# Create skill with interactive prompts
+skill-creator create-cc-skill --interactive --description "React Query for data fetching" @tanstack/react-query@5
 
 # Download documentation (automatically builds search index)
 skill-creator download-context7 --package @tanstack/react-query /tanstack/react-query
@@ -130,12 +148,17 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
 
 ## Commands
 
-### Core Commands
+### Installation & Setup
 
 | Command                  | Description                                          |
 | ------------------------ | ---------------------------------------------------- |
-| `init`                   | Install skill-creator as subagent (interactive mode) |
+| `init`                   | Install skill-creator as Claude Code subagent (interactive) |
 | `init-cc`                | Install skill-creator as subagent in user directory  |
+
+### Skill Creation (CLI Mode)
+
+| Command                  | Description                                          |
+| ------------------------ | ---------------------------------------------------- |
 | `search <keywords>`      | Search npm packages                                  |
 | `get-info <package>`     | Get detailed package information                     |
 | `create-cc-skill <name>` | Create a new skill directory                         |
@@ -147,6 +170,8 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
 | `download-context7 <project_id>` | Download and slice Context7 documentation |
 | `search-skill <query>`           | Search in skill knowledge base            |
 | `add-skill`                      | Add custom knowledge to skill             |
+
+> **Tip**: When using the skill-creator as a subagent, you don't need to remember these commands. Just tell Claude what you want to create, and the subagent will handle the entire workflow automatically.
 
 ### Options
 
@@ -212,8 +237,7 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
     │       ├── context7/     # Auto-sliced Context7 docs
     │       └── user/         # Custom knowledge files
     ├── config.json          # Skill configuration
-    ├── SKILL.md             # Skill documentation
-    └── package.json         # Node.js metadata
+    └── SKILL.md             # Skill documentation
 ```
 
 ## Development

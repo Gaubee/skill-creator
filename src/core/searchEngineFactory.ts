@@ -43,7 +43,7 @@ export async function buildSearchEngine(options: SearchEngineOptions = {}): Prom
 
       return new AutoSearchAdapter({
         skillDir,
-        collectionName: `${config.packageName?.replace(/[^a-zA-Z0-9._-]/g, '_') || 'skill'}_docs`,
+        collectionName: `skills`,
         enableChromaFallback: adapterOptions.enableChromaFallback ?? true,
         chromaStartupTimeout: adapterOptions.chromaStartupTimeout ?? 15000,
         qualityThreshold: adapterOptions.qualityThreshold ?? 0.3,
@@ -59,7 +59,7 @@ export async function buildSearchEngine(options: SearchEngineOptions = {}): Prom
 
       return new ChromaSearchAdapter({
         skillDir,
-        collectionName: `${config.packageName?.replace(/[^a-zA-Z0-9._-]/g, '_') || 'skill'}_docs`,
+        collectionName: `skills`,
         startupTimeout: adapterOptions.chromaStartupTimeout ?? 15000,
         enableFallback: adapterOptions.enableChromaFallback ?? true,
       })

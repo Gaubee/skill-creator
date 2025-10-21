@@ -5,12 +5,11 @@
 
 import { Command } from 'commander'
 import gradient from 'gradient-string'
-import inquirer from 'inquirer'
-import { SkillCreator } from './core/skillCreator.js'
 import { PackageUtils } from './utils/package.js'
-import type { CreateSkillOptions } from './types/index.js'
-import { join } from 'node:path'
+import path, { join } from 'node:path'
 import { homedir } from 'node:os'
+import { readdirSync, existsSync } from 'node:fs'
+import { createSkillForPackage } from './commands/createSkill.js'
 
 const program = new Command()
 
@@ -34,10 +33,6 @@ async function resolveSkillDirectory(commandOptions: {
   }
 
   if (commandOptions.package) {
-    const { join } = await import('node:path')
-    const { homedir } = await import('node:os')
-    const { readdirSync, existsSync } = await import('node:fs')
-
     const findDir = (base: string) => {
       if (!existsSync(base)) return undefined
       const dirs = readdirSync(base, { withFileTypes: true })
@@ -59,49 +54,6 @@ async function resolveSkillDirectory(commandOptions: {
   throw new Error('Could not find skill directory. Please provide --pwd or a valid --package.')
 }
 
-/**
- * Helper function to create a skill for a package with interactive confirmation
- */
-async function createSkillForPackage(
-  skillDirName: string,
-  packageName: string,
-  scope: 'current' | 'user',
-  force: boolean = false,
-  description?: string
-): Promise<string> {
-  const creator = new SkillCreator()
-
-  const createOptions: CreateSkillOptions = {
-    packageName: packageName, // Use the user-provided package name directly
-    path: scope === 'user' ? undefined : '.claude/skills',
-    scope: scope, // Map 'current' to 'project' for internal storage
-    noInitDocs: true, // Docs are downloaded in a separate step in the new flow
-    force: force, // Pass force option to SkillCreator
-    description: description, // Pass description option to SkillCreator
-  }
-
-  console.log(gradient('cyan', 'magenta')('\n🚀 Creating skill...'))
-
-  const result = await creator.createSkill(createOptions)
-
-  if (result.created) {
-    console.log(gradient('green', 'cyan')(`\n✅ ${result.message}`))
-    console.log(gradient('blue', 'cyan')(`📍 Skill Path: ${result.skillPath}`))
-    console.log('\n🎉 Skill created successfully!')
-    console.log('\nNext steps:')
-    console.log(
-      `1. Add content: skill-creator add-skill --pwd "${result.skillPath}" --title "My Note" --content "Your content"`
-    )
-    console.log(`2. Search skill: skill-creator search-skill --pwd "${result.skillPath}" "query"`)
-    console.log(
-      `3. Download docs: skill-creator download-context7 --pwd "${result.skillPath}" <context7_library_id>`
-    )
-    return result.skillPath!
-  } else {
-    throw new Error(result.message || 'Failed to create skill')
-  }
-}
-
 program
   .name('skill-creator')
   .description('Create claude-code-skills with documentation management')
@@ -117,15 +69,15 @@ program.hook('preAction', (thisCommand) => {
 // Add create-cc-skill command
 program
   .command('create-cc-skill')
-  .requiredOption('--scope <scope>', 'Storage scope (user or current)')
-  .option('--name <name>', 'Package name for the skill')
   .option('--interactive', 'Enable interactive confirmation prompts')
-  .option('--force', 'Force overwrite existing files in the skill directory')
+  .option('--scope <scope>', 'Storage scope (user or current), or custom directory to store skills')
+  .option('--name <name>', 'The skill name')
   .option('--description <description>', 'Custom description for the skill')
+  .option('--force', 'Force overwrite existing files in the skill directory')
   .argument('<skill_dir_name>', 'The name of the skill directory to create')
   .action(async (skillDirName, options) => {
     try {
-      const { scope, interactive, force, description, name } = options
+      let { scope, interactive, force, description, name } = options
 
       // Import inquirer for interactive prompts
       const { default: inquirer } = await import('inquirer')
@@ -133,24 +85,47 @@ program
       let finalSkillName = name || skillDirName
 
       if (interactive) {
-        // 1. 确认存储位置
         console.log('Skill Creation Configuration:')
-        console.log(`- Skill directory name: ${skillDirName}`)
-        console.log(`- Storage scope: ${scope}`)
-        const { confirmLocation } = await inquirer.prompt([
-          {
-            type: 'confirm',
-            name: 'confirmLocation',
-            message: `Create skill in ${scope === 'current' ? './.claude/skills/' : '~/.claude/skills/'}?`,
-            default: true,
-          },
-        ])
-
-        if (!confirmLocation) {
-          console.log('Skill creation cancelled.')
-          process.exit(0)
+        // 1. 确认存储位置
+        if (!scope) {
+          const scopeAnswer = await inquirer.prompt([
+            {
+              type: 'list',
+              name: 'scope',
+              message: 'Where would you like to store this skill?',
+              choices: [
+                {
+                  name: 'Current directory (./.claude/skills/)',
+                  value: 'current',
+                },
+                {
+                  name: 'User home directory (~/.claude/skills)',
+                  value: 'user',
+                },
+                new inquirer.Separator(),
+                {
+                  name: 'Custom directory',
+                  value: 'custom',
+                },
+              ],
+              default: existsSync(join(process.cwd(), '.claude/agents/skill-creator.md'))
+                ? 'current'
+                : 'user',
+            },
+          ])
+          scope = scopeAnswer.scope
+          if (scope === 'custom') {
+            const scopeAnswer = await inquirer.prompt([
+              {
+                type: 'input',
+                name: 'scope',
+                message: 'Directory to store skills',
+                validate: (input) => input.trim() !== '' || 'Directory cannot be empty',
+              },
+            ])
+            scope = path.join(process.cwd(), scopeAnswer.scope)
+          }
         }
-
         // 2. 如果没有提供--name参数，询问包名
         if (!name) {
           const { packageNameConfirmed } = await inquirer.prompt([
@@ -163,25 +138,42 @@ program
           ])
 
           if (!packageNameConfirmed) {
-            const { customPackageName } = await inquirer.prompt([
+            const { customSkillName } = await inquirer.prompt([
               {
                 type: 'input',
-                name: 'customPackageName',
-                message: 'Enter the package name:',
-                validate: (input) => input.trim() !== '' || 'Package name cannot be empty',
+                name: 'customSkillName',
+                message: 'Enter the skill name:',
+                validate: (input) => input.trim() !== '' || 'Skill name cannot be empty',
               },
             ])
-            finalSkillName = customPackageName.trim()
+            finalSkillName = customSkillName.trim()
           }
         }
 
+        if (!description) {
+          const { customDescription } = await inquirer.prompt([
+            {
+              type: 'input',
+              name: 'customDescription',
+              message: 'Enter the skill description:',
+            },
+          ])
+          description = customDescription.trim()
+        }
+      }
+      if (scope === 'user') {
+        scope = path.join(homedir(), '.claude/skills')
+      } else if (scope === 'current') {
+        scope = path.join(process.cwd(), '.claude/skills')
+      }
+
+      if (interactive) {
         // 3. 确认最终配置
         console.log('\nFinal Configuration:')
+        console.log(`- Storage location: ${scope}`)
         console.log(`- Skill directory name: ${skillDirName}`)
-        console.log(`- Package name: ${finalSkillName}`)
-        console.log(
-          `- Storage location: ${scope === 'current' ? './.claude/skills/' : '~/.claude/skills/'}`
-        )
+        console.log(`- Skill Name: ${finalSkillName}`)
+        console.log(`- Skill Description: ${description}`)
 
         const { confirmFinal } = await inquirer.prompt([
           {
@@ -199,13 +191,13 @@ program
       }
 
       // Create the skill with confirmed configuration
-      const skillPath = await createSkillForPackage(
-        skillDirName,
-        finalSkillName,
-        scope,
-        force,
-        description
-      )
+      const skillPath = await createSkillForPackage({
+        baseDir: scope,
+        skillDirname: skillDirName,
+        skillName: finalSkillName,
+        skillDescription: description,
+        force: force,
+      })
       console.log(`Skill created successfully at: ${skillPath}`)
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : String(error))
@@ -427,12 +419,11 @@ program
 
 // Add sub-commands for script execution
 program
-  .command('run-script')
-  .argument('<script>', 'Script to run (search, add, download-context7, build-index, list-content)')
-  .allowUnknownOption(true)
-  .action(async (script: string) => {
+  .command('list-content')
+  .option('--pwd <path>', 'Path to the skill directory')
+  .action(async (options) => {
     const { runScript } = await import('./core/runScript.js')
-    await runScript(script, process.argv.slice(4))
+    await runScript('list-content', process.argv.slice(4))
   })
 
 // Export for testing

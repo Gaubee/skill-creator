@@ -4,23 +4,14 @@
 
 import { z } from 'zod'
 import { readFileSync, writeFileSync } from 'node:fs'
-import type { SkillConfig } from '../types/index.js'
 
 export const SkillConfigSchema = z.object({
-  packageName: z.string().optional(),
-  context7LibraryId: z.string().optional(),
+  context7ProjectId: z.string().optional(),
 })
 
-export type SkillConfigInput = z.input<typeof SkillConfigSchema>
+export type SkillConfig = z.input<typeof SkillConfigSchema>
 
 export class Config {
-  static createDefault(options: { skillName: string; context7Id?: string }): SkillConfig {
-    return {
-      packageName: options.skillName,
-      context7LibraryId: options.context7Id || '',
-    }
-  }
-
   static load(filePath: string): SkillConfig {
     try {
       const content = readFileSync(filePath, 'utf-8')
@@ -41,9 +32,7 @@ export class Config {
     } catch (error) {
       // If config file doesn't exist or is invalid, return a minimal default config
       console.warn(`⚠️  Warning: Could not load config from ${filePath}. Using default values.`)
-      return {
-        packageName: 'unknown',
-      }
+      return {}
     }
   }
 }

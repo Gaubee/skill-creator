@@ -30,18 +30,6 @@ description: 通过智能搜索增强的 {{NAME}} 文档技能
 - **最佳实践缺失**: 总结常见设计模式和最佳实践，避免常见陷阱
 - **版本更新困扰**: 及时跟踪版本变化，提供迁移指南和新增特性说明
 
-### 安装和配置
-```bash
-# npm安装
-npm install {{PACKAGE_NAME}}
-
-# yarn安装
-yarn add {{PACKAGE_NAME}}
-
-# pnpm安装
-pnpm add {{PACKAGE_NAME}}
-```
-
 ## 使用指南
 
 ### 搜索文档知识点
@@ -159,27 +147,16 @@ skill-creator add-skill --pwd="{{SKILL_PATH}}" --title "知识点标题" --conte
 ### 更新官方文档
 获取最新的官方文档并重新切片：
 
-```bash
-skill-creator download-context7 --pwd="{{SKILL_PATH}}" {{CONTEXT7_ID}}
-```
-
 **强制更新（覆盖现有文档）：**
 ```bash
-skill-creator download-context7 --pwd="{{SKILL_PATH}}" {{CONTEXT7_ID}} --force
+skill-creator download-context7 --pwd="{{SKILL_PATH}}" --force
 ```
 
 ### 查看所有内容
 列出技能中所有可用的知识点：
 
 ```bash
-skill-creator run-script list-content --pwd="{{SKILL_PATH}}"
-```
-
-### 重建搜索索引
-如果搜索结果不准确，可以手动重建索引：
-
-```bash
-skill-creator run-script build-index --pwd="{{SKILL_PATH}}"
+skill-creator list-content --pwd="{{SKILL_PATH}}"
 ```
 
 ## 文档结构说明

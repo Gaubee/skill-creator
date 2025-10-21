@@ -23,7 +23,7 @@ export async function downloadContext7(args: string[]): Promise<void> {
     { name: 'skip-chroma-indexing', type: 'boolean' },
   ])
 
-  const projectId = options['project-id'] || config.context7LibraryId
+  const projectId = options['project-id'] || config.context7ProjectId
   if (!projectId) {
     console.error('❌ No Context7 project ID provided')
     console.error('   Use --project-id <id> or set context7LibraryId in config.json')

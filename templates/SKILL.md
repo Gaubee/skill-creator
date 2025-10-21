@@ -30,18 +30,6 @@ Continuous updates, following version iterations to continuously optimize and en
 - **Missing Best Practices**: Summarize common design patterns and best practices to avoid common pitfalls
 - **Version Update Challenges**: Track version changes promptly, providing migration guides and new feature descriptions
 
-### Installation & Setup
-```bash
-# npm installation
-npm install {{PACKAGE_NAME}}
-
-# yarn installation
-yarn add {{PACKAGE_NAME}}
-
-# pnpm installation
-pnpm add {{PACKAGE_NAME}}
-```
-
 ## Usage Guidelines
 
 ### Search Documentation Knowledge
@@ -159,27 +147,16 @@ skill-creator add-skill --pwd="{{SKILL_PATH}}" --title "Knowledge Title" --conte
 ### Update Official Documentation
 Fetch and re-slice the latest official documentation:
 
-```bash
-skill-creator download-context7 --pwd="{{SKILL_PATH}}" {{CONTEXT7_ID}}
-```
-
 **Force Update (overwrite existing documentation):**
 ```bash
-skill-creator download-context7 --pwd="{{SKILL_PATH}}" {{CONTEXT7_ID}} --force
+skill-creator download-context7 --pwd="{{SKILL_PATH}}" --force
 ```
 
 ### List All Content
 View all available knowledge points in the skill:
 
 ```bash
-skill-creator run-script list-content --pwd="{{SKILL_PATH}}"
-```
-
-### Rebuild Search Index
-Manually rebuild index when search results are inaccurate:
-
-```bash
-skill-creator run-script build-index --pwd="{{SKILL_PATH}}"
+skill-creator list-content --pwd="{{SKILL_PATH}}"
 ```
 
 ## Documentation Structure

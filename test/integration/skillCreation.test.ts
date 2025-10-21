@@ -67,11 +67,7 @@ describe('Skill Creation Integration Tests', () => {
       const addCommand = `${cliCmd} add-skill --pwd "${skillDir}" --title "My Zod Note" --content ${addContent}`
       execSync(addCommand, { encoding: 'utf-8' })
 
-      // 5. Build index (via run-script)
-      const buildCommand = `${cliCmd} run-script build-index`
-      execSync(buildCommand, { cwd: skillDir, encoding: 'utf-8' })
-
-      // 6. Search skill
+      // 5. Search skill
       const searchSkillCommand = `${cliCmd} search-skill --pwd "${skillDir}" "validation"`
       const searchSkillOutput = execSync(searchSkillCommand, { encoding: 'utf-8' })
       expect(searchSkillOutput).toContain('Search Results')
