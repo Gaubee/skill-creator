@@ -147,3 +147,41 @@ SKILL.zh-CN.md 中缺乏完善的 search-skill 介绍，特别是 --mode=auto|ch
 1. auto 模式是默认使用fuzzy，如果没有结果，就会使用chroma。
 2. chroma 模式是使用 chromadb 来进行搜索，因此可以进行一些语义化搜索。
 3. fuzzy 模式更加适用于关键字搜索，它就是一个字符串模糊匹配的算法。
+
+---
+
+请基于 `AGENTS.md` 和 `templates/skill-creator.zh-CN.md` 这两个文件去设计我们的单元测试。
+
+1. 修复并优化测试，确保完全通过
+1. 确保测试覆盖率到达 90% 以上。
+1. 设置 CI/CD 中的覆盖率门禁
+
+---
+
+接下来我们需要优化整个项目的架构：
+
+1. 首先先忽略现有项目代码，从**第一行原理**出发，遵从**SOLID**，设计一种**面向过程**的文件架构
+2. 参考已有代码文件，将已有的代码拆分组合，更改合适的命名规则，归置到应有的文件中。在这期间，几乎不修改测试代码，确保“功能测试”能完全通过。
+   > 有些测试可能测试的是class，但因为我们面向过程，所以可能失效，这类测试就先忽略。
+3. 整理测试文件，使得测试文件也能契合新版的文件架构。
+
+---
+
+接下来我们需要优化 add-skill 这个命令：
+
+1. 现状：
+   目前的基础参数:
+   - `--force`(`bool`): 覆盖写入
+   - `--force-append`(`bool`): 追加写入
+   - `--title`(`string`): 标题，两个作用：用于生成Filename、生成FileContent的标题
+   - `--content`(`string`): 内容，配合title生成FileContent
+
+2. 优化任务：
+   - `--file-name`(`string`): 单一职责：文件名称。优先级高于`--title`生成的Filename
+   - `--file-content`(`string[]`): 单一职责：文件内容。优先级高于`--content`和`--title`生成的FileContent。传入多个`--file-content`，会使用`\n\n`进行拼接。
+   - `--file-content-in`(`bool`): 由于fileContent的格式可能比较复杂，如果直接使用`--file-content`就需要考虑转义字符的问题，因此需要支持通过stdin来接收输入，也就是支持管道输入。比如`cat file.md | skill-creator add-skill --file-name="xxx.md" --file-content-in`。它的优先级高于`--file-content`，或者说，二者只能出现一个，否则意味着存在歧意。
+   - `--file`: 提供一个已经存在的文件，可以提取出隐式的`--file-name`和`--file-content`，但是优先级低于显式的`--file-name`和`--file-content`
+   - 将`--title`和`--content`标记成“不建议”，并提供建议直接使用`--file-name`和`--file-content`，但是仍然提供长期支持，因为这两个参数符合用户直觉，而`--file-name`和`--file-content`符合程序设计
+
+3. 收尾任务：
+   - 更新 AGENTS.md 和

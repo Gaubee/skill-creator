@@ -83,7 +83,8 @@ export class SkillCreator {
       const skillConfig: SkillCreateConfig = {
         name: config.name,
         packageName: options.packageName,
-        context7LibraryId: config.context7LibraryId,
+        context7LibraryId:
+          options.context7Id ?? `/${options.packageName.replace('@', '').replace('/', '__')}/docs`,
       }
       this.createBasicConfig(skillDir, skillConfig)
 
@@ -126,8 +127,8 @@ export class SkillCreator {
   private createBasicConfig(skillDir: string, config: SkillCreateConfig): void {
     const basicConfig = {
       name: config.name,
-      packageName: config.packageName,
-      context7_library_id: '', // Will be filled by download-context7 command
+      package_name: config.packageName,
+      context7_library_id: config.context7LibraryId || '',
     }
 
     const configPath = join(skillDir, 'config.json')

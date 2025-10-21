@@ -39,12 +39,16 @@ describe('Skill Creation Integration Tests', () => {
       const description = 'Zod is a TypeScript-first schema declaration and validation library.' // Mock description as it can be null
       const skillDir = join(tempDir, '.claude', 'skills', skill_dir_name)
 
-      // 3. Create skill using new command format: skill-creator create-cc-skill --scope [current|user] skill_dir_name
+      // 3. Create skill using new command format: skill-creator create-cc-skill --scope [current|user] --name packageName --description "desc" skill_dir_name
       const createCommand = [
         cliCmd,
         'create-cc-skill',
         '--scope',
         'current',
+        '--name',
+        '"zod"',
+        '--description',
+        `"${description}"`,
         `"${skill_dir_name}"`,
       ].join(' ')
 
@@ -54,6 +58,7 @@ describe('Skill Creation Integration Tests', () => {
         cwd: tempDir,
       })
       expect(createOutput).toContain('✅ Skill created successfully:')
+
       expect(existsSync(skillDir)).toBe(true)
 
       // 4. Add documentation
@@ -76,7 +81,6 @@ describe('Skill Creation Integration Tests', () => {
       const expectedFiles = [
         'config.json',
         'SKILL.md',
-        'package.json',
         'assets/references/context7/.gitkeep',
         'assets/references/user/.gitkeep',
         'assets/chroma_db/.gitkeep',
@@ -86,6 +90,9 @@ describe('Skill Creation Integration Tests', () => {
       expectedFiles.forEach((file) => {
         expect(existsSync(join(skillDir, file))).toBe(true)
       })
+
+      // package.json should not exist anymore
+      expect(existsSync(join(skillDir, 'package.json'))).toBe(false)
 
       // scripts folder should not exist
       expect(existsSync(join(skillDir, 'scripts'))).toBe(false)
@@ -137,7 +144,7 @@ describe('Skill Creation Integration Tests', () => {
       expect(output).toContain('✅ Skill created successfully')
       expect(existsSync(join(skillDir, 'config.json'))).toBe(true)
       expect(existsSync(join(skillDir, 'SKILL.md'))).toBe(true)
-      expect(existsSync(join(skillDir, 'package.json'))).toBe(true)
+      expect(existsSync(join(skillDir, 'package.json'))).toBe(false)
       // The existing file should still exist (we only overwrite our files)
       expect(existsSync(join(skillDir, 'existing-file.txt'))).toBe(true)
 

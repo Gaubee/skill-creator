@@ -8,6 +8,7 @@ import type { SkillConfig } from '../types/index.js'
 
 export const SkillConfigSchema = z.object({
   name: z.string(),
+  package_name: z.string().optional(),
   context7_library_id: z.string().optional(),
 })
 
@@ -30,6 +31,7 @@ export class Config {
       // Convert snake_case to camelCase
       return {
         name: config.name,
+        packageName: config.package_name,
         context7LibraryId: config.context7_library_id,
       }
     } catch (error) {
@@ -41,6 +43,7 @@ export class Config {
     // Convert camelCase to snake_case for JSON
     const raw = {
       name: config.name,
+      package_name: config.packageName,
       context7_library_id: config.context7LibraryId || '',
     }
 

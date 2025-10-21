@@ -35,8 +35,9 @@ describe('SkillCreator', () => {
       // Check required files
       expect(existsSync(join(result.skillPath!, 'config.json'))).toBe(true)
       expect(existsSync(join(result.skillPath!, 'SKILL.md'))).toBe(true)
-      expect(existsSync(join(result.skillPath!, 'package.json'))).toBe(true)
       expect(existsSync(join(result.skillPath!, 'assets'))).toBe(true)
+      // package.json should not exist anymore
+      expect(existsSync(join(result.skillPath!, 'package.json'))).toBe(false)
       // scripts folder should not exist
       expect(existsSync(join(result.skillPath!, 'scripts'))).toBe(false)
     })
@@ -54,12 +55,12 @@ describe('SkillCreator', () => {
 
       expect(result.created).toBe(true)
 
-      // Check config
+      // Check config - simplified structure
       const configPath = join(result.skillPath!, 'config.json')
       const config = Config.load(configPath)
       expect(config.name).toContain('@tanstack__router@1')
-      expect(config.description).toBe('Custom description')
       expect(config.context7LibraryId).toBe('/tanstack/router/docs')
+      expect(config.packageName).toBe('@tanstack/router')
     })
 
     it('should handle storage in user directory', async () => {
@@ -71,7 +72,7 @@ describe('SkillCreator', () => {
 
       const options = {
         packageName: 'user-skill',
-        storage: 'user' as const,
+        scope: 'user' as const,
       }
 
       const result = await skillCreator.createSkill(options)
@@ -159,25 +160,25 @@ describe('SkillCreator', () => {
       const content = readFileSync(skillMdPath, 'utf-8')
 
       expect(content).toContain('name: test-docs@')
-      expect(content).toContain('description: Test documentation skill')
-      expect(content).toContain('# test-docs@')
-      expect(content).toContain('Documentation Skill')
-      expect(content).toContain('## Features')
-      expect(content).toContain('## Usage')
+      expect(content).toContain('Test documentation skill')
+      expect(content).toContain('You are a specialized test-docs@')
+      expect(content).toContain('Search Documentation Knowledge')
+      expect(content).toContain('Search Mode Selection')
+      expect(content).toContain('## Usage Guidelines')
       // 验证包含绝对路径 - 应该以 / 开头的完整路径
       expect(content).toMatch(
-        /skill-creator (search-skill --pwd "\/.*"|add-skill --pwd "\/.*"|download-context7 --pwd "\/.*")/
+        /skill-creator (search-skill --pwd=.*|add-skill --pwd=.*|download-context7 --pwd=.*)/
       ) // 匹配新的命令格式
-      expect(content).toMatch(/search-skill --pwd ".*" "your search query"/)
+      expect(content).toMatch(/search-skill --pwd=.*? "search keywords"/)
       expect(content).toMatch(
-        /add-skill --pwd ".*" --title "content title" --content "your content"/
+        /add-skill --pwd=.*? --title "Knowledge Title" --content "Detailed content"/
       )
       expect(content).toContain('download-context7')
       // 确保不是示例路径
       expect(content).not.toContain('/path/to/your/skill')
     })
 
-    it('should create proper package.json', async () => {
+    it('should not create package.json file', async () => {
       const options = {
         packageName: 'test-pkg',
         path: tempDir,
@@ -185,14 +186,9 @@ describe('SkillCreator', () => {
 
       const result = await skillCreator.createSkill(options)
       const packageJsonPath = join(result.skillPath!, 'package.json')
-      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
 
-      expect(packageJson.name).toContain('test-pkg')
-      expect(packageJson.type).toBe('module')
-      // scripts should not exist
-      expect(packageJson.scripts).toBeUndefined()
-      expect(packageJson.dependencies).toBeDefined()
-      expect(packageJson.dependencies.chromadb).toBeDefined()
+      // package.json should not exist anymore
+      expect(existsSync(packageJsonPath)).toBe(false)
     })
 
     it('should create proper config.json', async () => {
@@ -207,12 +203,8 @@ describe('SkillCreator', () => {
       const config = Config.load(configPath)
 
       expect(config.name).toContain('test-config@')
-      expect(config.description).toBe('Test config')
       expect(config.context7LibraryId).toBe('/test-config/docs')
-      // Version should be fetched from npm or default to 1.0.0
-      expect(config.version).toMatch(/^\d+\.\d+\.\d+$/) // Semantic version format
-      expect(config.chunkSize).toBe(1000)
-      expect(config.chunkOverlap).toBe(200)
+      expect(config.packageName).toBe('test-config')
     })
   })
 
@@ -231,7 +223,7 @@ describe('SkillCreator', () => {
 
       const configPath = join(result.skillPath!, 'config.json')
       const config = Config.load(configPath)
-      expect(config.version).toBe('2.5.0')
+      expect(config.name).toContain('test-version@2')
     })
   })
 
@@ -284,7 +276,7 @@ describe('SkillCreator', () => {
       expect(result.skillPath).toBe(skillDir)
       expect(existsSync(join(skillDir, 'config.json'))).toBe(true)
       expect(existsSync(join(skillDir, 'SKILL.md'))).toBe(true)
-      expect(existsSync(join(skillDir, 'package.json'))).toBe(true)
+      expect(existsSync(join(skillDir, 'package.json'))).toBe(false)
       // The existing file should still exist
       expect(existsSync(join(skillDir, 'existing.txt'))).toBe(true)
     })
