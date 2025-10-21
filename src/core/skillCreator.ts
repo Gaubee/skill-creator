@@ -124,8 +124,8 @@ export class SkillCreator {
 
   private createBasicConfig(skillDir: string, config: SkillCreateConfig): void {
     const basicConfig = {
-      package_name: config.packageName,
-      context7_library_id: config.context7LibraryId || '',
+      packageName: config.packageName,
+      context7LibraryId: config.context7LibraryId || '',
     }
 
     const configPath = join(skillDir, 'config.json')

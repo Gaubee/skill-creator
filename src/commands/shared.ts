@@ -16,7 +16,7 @@ export function loadSkillConfig(): SkillConfig {
   if (!existsSync(configPath)) {
     console.warn('⚠️  config.json not found. Using default configuration.')
     return {
-      name: 'unknown',
+      packageName: 'unknown',
     }
   }
 
@@ -25,7 +25,7 @@ export function loadSkillConfig(): SkillConfig {
   } catch (error) {
     console.warn(`⚠️  Warning: Failed to load config.json. Using default configuration.`)
     return {
-      name: 'unknown',
+      packageName: 'unknown',
     }
   }
 }

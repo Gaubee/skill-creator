@@ -64,8 +64,8 @@ describe('Config', () => {
       const content = require('node:fs').readFileSync(configPath, 'utf-8')
       const jsonConfig = JSON.parse(content)
 
-      // Check that saved JSON uses snake_case
-      expect(jsonConfig.context7_library_id).toBe('/test/docs')
+      // Check that saved JSON uses camelCase
+      expect(jsonConfig.context7LibraryId).toBe('/test/docs')
 
       // Check that loaded config uses camelCase
       const loadedConfig = Config.load(configPath)
