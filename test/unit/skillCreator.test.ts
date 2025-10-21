@@ -1,10 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync, readdirSync } from 'node:fs'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 import { SkillCreator } from '../../src/core/skillCreator.js'
-import { Config } from '../../src/utils/config.js'
-import { createTempDir, cleanupTempDir, createMockConfig } from '../test-utils.js'
+import { createTempDir, cleanupTempDir } from '../test-utils.js'
 
 describe('SkillCreator', () => {
   let tempDir: string
@@ -22,82 +21,77 @@ describe('SkillCreator', () => {
   describe('createSkill', () => {
     it('should create a skill with default options', async () => {
       const options = {
-        packageName: 'test-package',
-        path: tempDir,
+        baseDir: tempDir,
+        skillDirname: 'test-package@1.0.0',
+        skillName: 'test-package',
       }
 
       const result = await skillCreator.createSkill(options)
 
       expect(result.created).toBe(true)
-      expect(result.skillPath).toContain('test-package@')
+      expect(result.skillPath).toContain('test-package@1.0.0')
       expect(existsSync(result.skillPath!)).toBe(true)
 
-      // Check required files
-      expect(existsSync(join(result.skillPath!, 'config.json'))).toBe(true)
+      // Check required files and directories
       expect(existsSync(join(result.skillPath!, 'SKILL.md'))).toBe(true)
       expect(existsSync(join(result.skillPath!, 'assets'))).toBe(true)
-      // package.json should not exist anymore
+      expect(existsSync(join(result.skillPath!, 'assets', 'references'))).toBe(true)
+      expect(existsSync(join(result.skillPath!, 'assets', 'references', 'context7'))).toBe(true)
+      expect(existsSync(join(result.skillPath!, 'assets', 'references', 'user'))).toBe(true)
+      expect(existsSync(join(result.skillPath!, 'assets', 'chroma_db'))).toBe(true)
+      expect(existsSync(join(result.skillPath!, 'assets', 'logs'))).toBe(true)
+
+      // Should not create config.json or package.json
+      expect(existsSync(join(result.skillPath!, 'config.json'))).toBe(false)
       expect(existsSync(join(result.skillPath!, 'package.json'))).toBe(false)
-      // scripts folder should not exist
       expect(existsSync(join(result.skillPath!, 'scripts'))).toBe(false)
     })
 
     it('should create skill with custom options', async () => {
       const options = {
-        packageName: '@tanstack/router',
-        path: tempDir,
-        description: 'Custom description',
-        context7Id: '/tanstack/router/docs',
-        version: '1.0.0',
+        baseDir: tempDir,
+        skillDirname: 'tanstack-router@1.2.3',
+        skillName: '@tanstack/router',
+        skillDescription: 'Custom description for TanStack Router',
       }
 
       const result = await skillCreator.createSkill(options)
 
       expect(result.created).toBe(true)
+      expect(result.skillPath).toContain('tanstack-router@1.2.3')
 
-      // Check config - simplified structure
-      const configPath = join(result.skillPath!, 'config.json')
-      const config = Config.load(configPath)
-      expect(config.packageName).toBe('@tanstack/router')
-      expect(config.context7LibraryId).toBe('/tanstack/router/docs')
+      // Check SKILL.md content
+      const skillMdPath = join(result.skillPath!, 'SKILL.md')
+      const skillContent = readFileSync(skillMdPath, 'utf-8')
+      expect(skillContent).toContain('@tanstack/router')
+      expect(skillContent).toContain('Custom description for TanStack Router')
     })
 
     it('should handle storage in user directory', async () => {
-      // Clean up any existing skill first
-      const existingSkillPath = join(homedir(), '.claude', 'skills', 'user-skill@1')
-      if (existsSync(existingSkillPath)) {
-        rmSync(existingSkillPath, { recursive: true, force: true })
-      }
-
+      const userDir = join(homedir(), '.claude', 'skills')
       const options = {
-        packageName: 'user-skill',
-        scope: 'user' as const,
+        baseDir: userDir,
+        skillDirname: 'user-skill@1.0.0',
+        skillName: 'user-skill',
       }
 
       const result = await skillCreator.createSkill(options)
 
       expect(result.created).toBe(true)
-      // The skill should be created in the user's home directory under .claude/skills
-      const expectedPath = join(homedir(), '.claude', 'skills')
-      expect(result.skillPath).toContain(expectedPath)
-      expect(result.skillPath).toContain('user-skill@')
+      expect(result.skillPath).toContain(userDir)
+      expect(result.skillPath).toContain('user-skill@1.0.0')
 
       // Clean up created skill
       rmSync(result.skillPath!, { recursive: true, force: true })
     }, 10000)
 
     it('should reject if directory exists and is not empty', async () => {
-      // Use a specific version so we know the exact folder name
+      const skillDir = join(tempDir, 'existing-skill@1.0.0')
       const options = {
-        packageName: 'test-package',
-        path: tempDir,
-        version: '1.0.0', // Specify version to avoid npm lookup
+        baseDir: tempDir,
+        skillDirname: 'existing-skill@1.0.0',
+        skillName: 'existing-skill',
       }
-
-      // Calculate the expected skill folder name
-      const { PackageUtils } = await import('../../src/utils/package.js')
-      const expectedSkillName = PackageUtils.createSkillFolderName('test-package', '1.0.0') // Should be 'test-package@1'
-      const skillDir = join(tempDir, expectedSkillName)
 
       // Create the directory with a file
       mkdirSync(skillDir, { recursive: true })
@@ -111,8 +105,9 @@ describe('SkillCreator', () => {
 
     it('should create correct directory structure', async () => {
       const options = {
-        packageName: 'test-structure',
-        path: tempDir,
+        baseDir: tempDir,
+        skillDirname: 'test-structure@1.0.0',
+        skillName: 'test-structure',
       }
 
       const result = await skillCreator.createSkill(options)
@@ -127,144 +122,76 @@ describe('SkillCreator', () => {
       ]
 
       expectedDirs.forEach((dir) => {
-        expect(existsSync(join(skillDir, dir))).toBe(true)
+        const dirPath = join(skillDir, dir)
+        expect(existsSync(dirPath)).toBe(true)
+        // Check that .gitkeep files are created
+        expect(existsSync(join(dirPath, '.gitkeep'))).toBe(true)
       })
 
-      // scripts folder should not exist
+      // Should not create scripts folder
       expect(existsSync(join(skillDir, 'scripts'))).toBe(false)
     })
 
-    it('should not create scripts folder', async () => {
+    it('should create proper SKILL.md content with template variables', async () => {
       const options = {
-        packageName: 'test-no-scripts',
-        path: tempDir,
-      }
-
-      const result = await skillCreator.createSkill(options)
-      const scriptsDir = join(result.skillPath!, 'scripts')
-
-      // scripts folder should not exist
-      expect(existsSync(scriptsDir)).toBe(false)
-    })
-
-    it('should create proper SKILL.md content', async () => {
-      const options = {
-        packageName: 'test-docs',
-        path: tempDir,
-        description: 'Test documentation skill',
+        baseDir: tempDir,
+        skillDirname: 'test-template@1.0.0',
+        skillName: 'test-template',
+        skillDescription: 'Test template skill for documentation',
       }
 
       const result = await skillCreator.createSkill(options)
       const skillMdPath = join(result.skillPath!, 'SKILL.md')
       const content = readFileSync(skillMdPath, 'utf-8')
 
-      expect(content).toContain('name: test-docs')
-      expect(content).toContain('Test documentation skill')
-      expect(content).toContain('You are a specialized test-docs')
-      expect(content).toContain('Search Documentation Knowledge')
-      expect(content).toContain('Search Mode Selection')
-      expect(content).toContain('## Usage Guidelines')
-      // 验证包含绝对路径 - 应该以 / 开头的完整路径
-      expect(content).toMatch(
-        /skill-creator (search-skill --pwd=.*|add-skill --pwd=.*|download-context7 --pwd=.*)/
-      ) // 匹配新的命令格式
-      expect(content).toMatch(/search-skill --pwd=.*? "search keywords"/)
-      expect(content).toMatch(
-        /add-skill --pwd=.*? --title "Knowledge Title" --content "Detailed content"/
+      // Check template variable replacement
+      expect(content).toContain('name: test-template')
+      expect(content).toContain('Test template skill for documentation')
+      expect(content).toContain('You are a specialized test-template expert assistant')
+      expect(content).toContain(result.skillPath) // {{SKILL_PATH}} should be replaced
+
+      // Check that default description is used when none provided
+      const optionsWithoutDesc = {
+        baseDir: tempDir,
+        skillDirname: 'no-desc@1.0.0',
+        skillName: 'no-desc',
+      }
+      const resultWithoutDesc = await skillCreator.createSkill(optionsWithoutDesc)
+      const contentWithoutDesc = readFileSync(
+        join(resultWithoutDesc.skillPath!, 'SKILL.md'),
+        'utf-8'
       )
-      expect(content).toContain('download-context7')
-      // 确保不是示例路径
-      expect(content).not.toContain('/path/to/your/skill')
+      expect(contentWithoutDesc).toContain(
+        'Specialized no-desc expert assistant providing comprehensive technical support'
+      )
     })
 
-    it('should not create package.json file', async () => {
+    it('should not create config.json file (as this is handled separately)', async () => {
       const options = {
-        packageName: 'test-pkg',
-        path: tempDir,
-      }
-
-      const result = await skillCreator.createSkill(options)
-      const packageJsonPath = join(result.skillPath!, 'package.json')
-
-      // package.json should not exist anymore
-      expect(existsSync(packageJsonPath)).toBe(false)
-    })
-
-    it('should create proper config.json', async () => {
-      const options = {
-        packageName: 'test-config',
-        path: tempDir,
-        description: 'Test config',
+        baseDir: tempDir,
+        skillDirname: 'no-config@1.0.0',
+        skillName: 'no-config',
       }
 
       const result = await skillCreator.createSkill(options)
       const configPath = join(result.skillPath!, 'config.json')
-      const config = Config.load(configPath)
 
-      expect(config.packageName).toBe('test-config')
-      expect(config.context7LibraryId).toBe('/test-config/docs')
+      // config.json should not be created by SkillCreator
+      expect(existsSync(configPath)).toBe(false)
     })
   })
 
-  describe('createSkill with version', () => {
-    it('should use provided version in folder name', async () => {
-      const options = {
-        packageName: 'test-version',
-        path: tempDir,
-        version: '2.5.0',
-      }
-
-      const result = await skillCreator.createSkill(options)
-
-      // Version 2.5.0 should be formatted to just "2" (major version for v2+)
-      expect(result.skillPath).toContain('test-version@2')
-
-      const configPath = join(result.skillPath!, 'config.json')
-      const config = Config.load(configPath)
-      expect(config.packageName).toBe('test-version')
-    })
-  })
-
-  describe('error handling', () => {
-    it('should handle file system errors gracefully', async () => {
-      // Create a readonly directory to trigger error
-      const readonlyDir = join(tempDir, 'readonly')
-      mkdirSync(readonlyDir, { recursive: true })
-
-      // Make it read-only (this might not work on all systems)
-      try {
-        const { constants } = await import('node:fs')
-        const { chmodSync } = await import('node:fs')
-        chmodSync(readonlyDir, constants.S_IRUSR | constants.S_IRGRP | constants.S_IROTH)
-      } catch {
-        // Skip this test if we can't change permissions
-        return
-      }
-
-      const options = {
-        packageName: 'test-error',
-        path: readonlyDir,
-      }
-
-      const result = await skillCreator.createSkill(options)
-
-      // Should handle errors gracefully
-      if (!result.created) {
-        expect(result.message).toContain('Failed to create skill')
-      }
-    })
-
+  describe('force option', () => {
     it('should succeed with force option when directory exists', async () => {
+      const skillDir = join(tempDir, 'test-force@1.0.0')
       const options = {
-        packageName: 'test-force-unique',
-        path: tempDir,
+        baseDir: tempDir,
+        skillDirname: 'test-force@1.0.0',
+        skillName: 'test-force',
         force: true,
-        version: '1.0.0',
       }
 
       // Create an existing directory with files
-      const expectedSkillName = 'test-force-unique@1'
-      const skillDir = join(tempDir, expectedSkillName)
       mkdirSync(skillDir, { recursive: true })
       writeFileSync(join(skillDir, 'existing.txt'), 'existing content')
 
@@ -272,11 +199,117 @@ describe('SkillCreator', () => {
 
       expect(result.created).toBe(true)
       expect(result.skillPath).toBe(skillDir)
-      expect(existsSync(join(skillDir, 'config.json'))).toBe(true)
       expect(existsSync(join(skillDir, 'SKILL.md'))).toBe(true)
-      expect(existsSync(join(skillDir, 'package.json'))).toBe(false)
-      // The existing file should still exist
+      expect(existsSync(join(skillDir, 'assets'))).toBe(true)
+      // The existing file should still exist (we only overwrite our files)
       expect(existsSync(join(skillDir, 'existing.txt'))).toBe(true)
+    })
+
+    it('should work with force on empty directory', async () => {
+      const skillDir = join(tempDir, 'test-force-empty@1.0.0')
+      const options = {
+        baseDir: tempDir,
+        skillDirname: 'test-force-empty@1.0.0',
+        skillName: 'test-force-empty',
+        force: true,
+      }
+
+      // Create an empty directory
+      mkdirSync(skillDir, { recursive: true })
+
+      const result = await skillCreator.createSkill(options)
+
+      expect(result.created).toBe(true)
+      expect(result.skillPath).toBe(skillDir)
+      expect(existsSync(join(skillDir, 'SKILL.md'))).toBe(true)
+    })
+  })
+
+  describe('error handling', () => {
+    it('should handle file system errors gracefully', async () => {
+      // Create options with invalid path that should cause an error
+      const options = {
+        baseDir: '/invalid/path/that/does/not/exist',
+        skillDirname: 'test-error@1.0.0',
+        skillName: 'test-error',
+      }
+
+      const result = await skillCreator.createSkill(options)
+
+      // Should handle errors gracefully
+      expect(result.created).toBe(false)
+      expect(result.message).toContain('Failed to create skill')
+    })
+
+    it('should handle template with unicode and special characters', async () => {
+      const options = {
+        baseDir: tempDir,
+        skillDirname: 'test-unicode@1.0.0',
+        skillName: 'test-with-unicode-🚀-and-特殊字符',
+        skillDescription: 'Test description with emoji 🚀 and Chinese characters 中文',
+      }
+
+      const result = await skillCreator.createSkill(options)
+
+      expect(result.created).toBe(true)
+      const skillMdPath = join(result.skillPath!, 'SKILL.md')
+      const content = readFileSync(skillMdPath, 'utf-8')
+
+      // Verify template handles unicode and special characters correctly
+      expect(content).toContain('test-with-unicode-🚀-and-特殊字符')
+      expect(content).toContain('Test description with emoji 🚀 and Chinese characters 中文')
+      expect(content).toContain(result.skillPath) // Path replacement should work
+    })
+  })
+
+  describe('edge cases', () => {
+    it('should handle empty skill name', async () => {
+      const options = {
+        baseDir: tempDir,
+        skillDirname: 'empty-name@1.0.0',
+        skillName: '',
+      }
+
+      const result = await skillCreator.createSkill(options)
+
+      expect(result.created).toBe(true)
+      const skillMdPath = join(result.skillPath!, 'SKILL.md')
+      const content = readFileSync(skillMdPath, 'utf-8')
+      // Should use default description when name is empty
+      expect(content).toContain(
+        'Specialized  expert assistant providing comprehensive technical support'
+      )
+    })
+
+    it('should handle very long skill names', async () => {
+      const longName = 'a'.repeat(100)
+      const options = {
+        baseDir: tempDir,
+        skillDirname: `${longName}@1.0.0`,
+        skillName: longName,
+      }
+
+      const result = await skillCreator.createSkill(options)
+
+      expect(result.created).toBe(true)
+      const skillMdPath = join(result.skillPath!, 'SKILL.md')
+      const content = readFileSync(skillMdPath, 'utf-8')
+      expect(content).toContain(longName)
+    })
+
+    it('should handle special characters in skill name', async () => {
+      const options = {
+        baseDir: tempDir,
+        skillDirname: 'special-chars@1.0.0',
+        skillName: 'test-with-special_chars-and-123',
+      }
+
+      const result = await skillCreator.createSkill(options)
+
+      expect(result.created).toBe(true)
+      const skillMdPath = join(result.skillPath!, 'SKILL.md')
+      const content = readFileSync(skillMdPath, 'utf-8')
+      expect(content).toContain('test-with-special_chars-and-123')
     })
   })
 })

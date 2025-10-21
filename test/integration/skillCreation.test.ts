@@ -75,7 +75,6 @@ describe('Skill Creation Integration Tests', () => {
 
       // 7. Verify file structure
       const expectedFiles = [
-        'config.json',
         'SKILL.md',
         'assets/references/context7/.gitkeep',
         'assets/references/user/.gitkeep',
@@ -87,7 +86,8 @@ describe('Skill Creation Integration Tests', () => {
         expect(existsSync(join(skillDir, file))).toBe(true)
       })
 
-      // package.json should not exist anymore
+      // config.json and package.json should not exist anymore
+      expect(existsSync(join(skillDir, 'config.json'))).toBe(false)
       expect(existsSync(join(skillDir, 'package.json'))).toBe(false)
 
       // scripts folder should not exist
@@ -110,10 +110,10 @@ describe('Skill Creation Integration Tests', () => {
   describe('Force Option', () => {
     it('should fail when skill directory exists without force', () => {
       const tempDir = createTempDir('force-test-')
-      const skillDir = join(tempDir, '.claude', 'skills', 'test-force-skill@1')
+      const skillDir = join(tempDir, '.claude', 'skills', 'test-force-skill')
 
       // Create an existing skill directory with some content
-      mkdirSync(join(skillDir), { recursive: true })
+      mkdirSync(skillDir, { recursive: true })
       writeFileSync(join(skillDir, 'existing-file.txt'), 'existing content')
 
       const command = `node ${process.cwd()}/dist/cli.js create-cc-skill --scope current test-force-skill`
@@ -127,19 +127,18 @@ describe('Skill Creation Integration Tests', () => {
 
     it('should succeed when skill directory exists with force option', () => {
       const tempDir = createTempDir('force-test-')
-      const skillDir = join(tempDir, '.claude', 'skills', 'test-force-skill@1')
+      const skillDir = join(tempDir, '.claude', 'skills', 'test-force-skill')
 
       // Create an existing skill directory with some content
-      mkdirSync(join(skillDir), { recursive: true })
+      mkdirSync(skillDir, { recursive: true })
       writeFileSync(join(skillDir, 'existing-file.txt'), 'existing content')
 
       const command = `node ${process.cwd()}/dist/cli.js create-cc-skill --scope current --force test-force-skill`
       const output = execSync(command, { encoding: 'utf-8', cwd: tempDir })
 
-      expect(output).toContain('⚠️  Skill directory exists, forcing overwrite')
       expect(output).toContain('✅ Skill created successfully')
-      expect(existsSync(join(skillDir, 'config.json'))).toBe(true)
       expect(existsSync(join(skillDir, 'SKILL.md'))).toBe(true)
+      expect(existsSync(join(skillDir, 'config.json'))).toBe(false)
       expect(existsSync(join(skillDir, 'package.json'))).toBe(false)
       // The existing file should still exist (we only overwrite our files)
       expect(existsSync(join(skillDir, 'existing-file.txt'))).toBe(true)

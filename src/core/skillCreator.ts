@@ -11,7 +11,6 @@ import { Config } from '../utils/config.js'
 
 // Internal config interface used during skill creation
 interface SkillCreateConfig {
-  packageName: string
   context7LibraryId?: string
 }
 
@@ -78,16 +77,6 @@ export class SkillCreator {
       mkdirSync(dirPath, { recursive: true })
       writeFileSync(join(dirPath, '.gitkeep'), '')
     }
-  }
-
-  private createBasicConfig(skillDir: string, config: SkillCreateConfig): void {
-    const basicConfig = {
-      packageName: config.packageName,
-      context7LibraryId: config.context7LibraryId || '',
-    }
-
-    const configPath = join(skillDir, 'config.json')
-    writeFileSync(configPath, JSON.stringify(basicConfig, null, 2))
   }
 
   private async createSkillMdFromTemplate(
