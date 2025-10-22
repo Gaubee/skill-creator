@@ -10,15 +10,17 @@ import type { SkillConfig } from '../types/index.js'
 /**
  * Load skill configuration from current directory
  */
-export function loadSkillConfig(): SkillConfig {
-  const configPath = join(process.cwd(), 'config.json')
-
-  if (!existsSync(configPath)) {
-    console.warn('⚠️  config.json not found. Using default configuration.')
-    return {}
-  }
-
+export function loadSkillConfig(pwd: string): SkillConfig {
+  const configPath = join(pwd, 'config.json')
   return Config.loadWithDefaults(configPath)
+}
+
+/**
+ * Load skill configuration from current directory
+ */
+export function storeSkillConfig(pwd: string, config: SkillConfig) {
+  const configPath = join(pwd, 'config.json')
+  return Config.save(config, configPath)
 }
 
 /**
