@@ -133,28 +133,79 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Generate Release Notes
+        id: release-notes
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          echo "Generating release notes for v$VERSION"
+
+          # Get the previous tag (excluding the current version tag if it exists)
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "v$VERSION" | head -n 1)
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "No previous tag found, using all commits"
+            COMMIT_RANGE="HEAD"
+          else
+            echo "Previous tag found: $PREV_TAG"
+            COMMIT_RANGE="$PREV_TAG..HEAD"
+          fi
+
+          # Generate release notes
+          echo "RELEASE_BODY<<EOF" >> $GITHUB_OUTPUT
+          echo "## Release v$VERSION" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "This is an automated release of skill-creator v$VERSION." >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+
+          # Installation instructions
+          echo "### 📦 Installation" >> $GITHUB_OUTPUT
+          echo '```bash' >> $GITHUB_OUTPUT
+          echo "npm install -g skill-creator@$VERSION" >> $GITHUB_OUTPUT
+          echo '```' >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+
+          # Generate changelog
+          echo "### 🚀 What's Changed" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+
+          if [ "$PREV_TAG" != "" ]; then
+            echo "**Changes since $PREV_TAG:**" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+
+            # Get commit messages and format them
+            git log $COMMIT_RANGE --pretty=format:"- %s (%h)" | head -50 >> $GITHUB_OUTPUT
+
+            # Get commit stats
+            echo "" >> $GITHUB_OUTPUT
+            echo "**📊 Statistics:**" >> $GITHUB_OUTPUT
+            echo "- $(git rev-list --count $COMMIT_RANGE) commits since $PREV_TAG" >> $GITHUB_OUTPUT
+            echo "- $(git diff --stat $COMMIT_RANGE | tail -n 1 | grep -o '[0-9]\+ insertion' | head -n 1 || echo '0') insertions, $(git diff --stat $COMMIT_RANGE | tail -n 1 | grep -o '[0-9]\+ deletion' | head -n 1 || echo '0') deletions" >> $GITHUB_OUTPUT
+          else
+            echo "**Initial release or first automated release**" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "**Recent commits:**" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            git log --oneline -10 >> $GITHUB_OUTPUT
+          fi
+
+          echo "" >> $GITHUB_OUTPUT
+          echo "### 📖 Documentation" >> $GITHUB_OUTPUT
+          echo "View the [README.md](https://github.com/gaubee/skill-creator/blob/main/README.md) for usage instructions" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "---" >> $GITHUB_OUTPUT
+          echo "*Generated automatically on $(date '+%Y-%m-%d %H:%M:%S')*" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.check-version.outputs.version }}
           release_name: Release v${{ needs.check-version.outputs.version }}
-          body: |
-            ## Release v${{ needs.check-version.outputs.version }}
-
-            This is an automated release of skill-creator v${{ needs.check-version.outputs.version }}.
-
-            ### Installation
-            ```bash
-            npm install -g skill-creator@${{ needs.check-version.outputs.version }}
-            ```
-
-            ### What's Changed
-            - Check the commits since the last release for detailed changes
-            - View the [README.md](https://github.com/gaubee/skill-creator/blob/main/README.md) for usage instructions
+          body: ${{ steps.release-notes.outputs.RELEASE_BODY }}
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Create a summary job to show the results
   summary:
