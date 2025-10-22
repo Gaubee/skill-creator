@@ -2,7 +2,9 @@
  * Package utilities
  */
 
+import { readFileSync } from 'node:fs'
 import type { PackageVersion } from '../types/index.js'
+import { resolve } from 'node:path'
 
 export interface SearchResult {
   name: string
@@ -60,6 +62,27 @@ export class PackageUtils {
       if (!latestVersionInfo) return null
 
       return latestVersionInfo
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Get full package info from npm registry for the latest version
+   */
+  static getCurrentPackageInfo(): {
+    name: string
+    version: string
+    description: string
+    homepage?: string
+    repository?: { type: string; url: string }
+    [key: string]: any
+  } | null {
+    try {
+      const packageInfo = JSON.parse(
+        readFileSync(resolve(import.meta.dirname, '../../package.json'), 'utf-8')
+      )
+      return packageInfo
     } catch {
       return null
     }

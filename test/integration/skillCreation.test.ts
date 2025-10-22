@@ -17,82 +17,86 @@ describe('Skill Creation Integration Tests', () => {
   })
 
   describe('Full Skill Creation Workflow', () => {
-    it('should create and use a complete skill following the new CLI structure', () => {
-      const packageName = 'zod' // Using a real, simple package
-      const cliCmd = `node ${process.cwd()}/dist/cli.js`
+    it(
+      'should create and use a complete skill following the new CLI structure',
+      () => {
+        const packageName = 'zod' // Using a real, simple package
+        const cliCmd = `node "${process.cwd()}/dist/cli.js"`
 
-      // 1. Search for package
-      const searchOutput = execSync(`${cliCmd} search ${packageName}`, { encoding: 'utf-8' })
-      const searchResults = JSON.parse(searchOutput)
-      expect(searchResults).toBeInstanceOf(Array)
-      expect(searchResults.length).toBeGreaterThan(0)
-      expect(searchResults[0].name).toBe(packageName)
+        // 1. Search for package
+        const searchOutput = execSync(`${cliCmd} search ${packageName}`, { encoding: 'utf-8' })
+        const searchResults = JSON.parse(searchOutput)
+        expect(searchResults).toBeInstanceOf(Array)
+        expect(searchResults.length).toBeGreaterThan(0)
+        expect(searchResults[0].name).toBe(packageName)
 
-      // 2. Get package info
-      const getInfoOutput = execSync(`${cliCmd} get-info ${packageName}`, { encoding: 'utf-8' })
-      const packageInfo = JSON.parse(getInfoOutput)
-      expect(packageInfo.name).toBe(packageName)
-      expect(packageInfo.skill_dir_name).toBeDefined()
-      expect(packageInfo.version).toBeDefined()
+        // 2. Get package info
+        const getInfoOutput = execSync(`${cliCmd} get-info ${packageName}`, { encoding: 'utf-8' })
+        const packageInfo = JSON.parse(getInfoOutput)
+        expect(packageInfo.name).toBe(packageName)
+        expect(packageInfo.skill_dir_name).toBeDefined()
+        expect(packageInfo.version).toBeDefined()
 
-      const { skill_dir_name, version } = packageInfo
-      const description = 'Zod is a TypeScript-first schema declaration and validation library.' // Mock description as it can be null
-      const skillDir = join(tempDir, '.claude', 'skills', skill_dir_name)
+        const { skill_dir_name, version } = packageInfo
+        const description = 'Zod is a TypeScript-first schema declaration and validation library.' // Mock description as it can be null
+        const skillDir = join(tempDir, '.claude', 'skills', skill_dir_name)
 
-      // 3. Create skill using new command format: skill-creator create-cc-skill --scope [current|user] --name packageName --description "desc" skill_dir_name
-      const createCommand = [
-        cliCmd,
-        'create-cc-skill',
-        '--scope',
-        'current',
-        '--name',
-        '"zod"',
-        '--description',
-        `"${description}"`,
-        `"${skill_dir_name}"`,
-      ].join(' ')
+        // 3. Create skill using new command format: skill-creator create-cc-skill --scope [current|user] --name packageName --description "desc" skill_dir_name
+        const createCommand = [
+          cliCmd,
+          'create-cc-skill',
+          '--scope',
+          'current',
+          '--name',
+          '"zod"',
+          '--description',
+          `"${description}"`,
+          `"${skill_dir_name}"`,
+        ].join(' ')
 
-      // The create command needs to run from within the tempDir to pick up the current scope
-      const createOutput = execSync(createCommand, {
-        encoding: 'utf-8',
-        cwd: tempDir,
-      })
-      expect(createOutput).toContain('✅ Skill created successfully:')
+        // The create command needs to run from within the tempDir to pick up the current scope
+        const createOutput = execSync(createCommand, {
+          encoding: 'utf-8',
+          cwd: tempDir,
+        })
+        expect(createOutput).toContain('✅ Skill created successfully:')
 
-      expect(existsSync(skillDir)).toBe(true)
+        expect(existsSync(skillDir)).toBe(true)
 
-      // 4. Add documentation
-      const addContent =
-        "'# Zod Validation Guide\n\nZod is a TypeScript-first schema declaration and validation library. It provides powerful validation capabilities that make it easy to ensure data integrity in your applications. With Zod, you can define schemas and validate data against them with simple, intuitive syntax.'"
-      const addCommand = `${cliCmd} add-skill --pwd "${skillDir}" --title "My Zod Note" --content ${addContent}`
-      execSync(addCommand, { encoding: 'utf-8' })
+        // 4. Add documentation
+        const addContent =
+          "'# Zod Validation Guide\n\nZod is a TypeScript-first schema declaration and validation library. It provides powerful validation capabilities that make it easy to ensure data integrity in your applications. With Zod, you can define schemas and validate data against them with simple, intuitive syntax.'"
+        const addCommand = `${cliCmd} add-skill --pwd "${skillDir}" --title "My Zod Note" --content ${addContent}`
+        execSync(addCommand, { encoding: 'utf-8' })
 
-      // 5. Search skill
-      const searchSkillCommand = `${cliCmd} search-skill --pwd "${skillDir}" "validation"`
-      const searchSkillOutput = execSync(searchSkillCommand, { encoding: 'utf-8' })
-      expect(searchSkillOutput).toContain('Search Results')
-      expect(searchSkillOutput).toContain('Zod Validation Guide')
+        // 5. Search skill
+        const searchSkillCommand = `${cliCmd} search-skill --pwd "${skillDir}" "validation"`
+        const searchSkillOutput = execSync(searchSkillCommand, { encoding: 'utf-8' })
+        expect(searchSkillOutput).toContain('Search Results')
+        expect(searchSkillOutput).toContain('Zod Validation Guide')
 
-      // 7. Verify file structure
-      const expectedFiles = [
-        'SKILL.md',
-        'assets/references/context7/.gitkeep',
-        'assets/references/user/.gitkeep',
-        'assets/chroma_db/.gitkeep',
-        'assets/logs/.gitkeep',
-      ]
+        // 7. Verify file structure
+        const expectedFiles = [
+          'SKILL.md',
+          'assets/references/context7/.gitkeep',
+          'assets/references/user/.gitkeep',
+          'assets/chroma_db/.gitkeep',
+          'assets/logs/.gitkeep',
+        ]
 
-      expectedFiles.forEach((file) => {
-        expect(existsSync(join(skillDir, file))).toBe(true)
-      })
+        expectedFiles.forEach((file) => {
+          expect(existsSync(join(skillDir, file))).toBe(true)
+        })
 
-      // config.json and package.json should not exist anymore
-      expect(existsSync(join(skillDir, 'config.json'))).toBe(false)
-      expect(existsSync(join(skillDir, 'package.json'))).toBe(false)
+        // config.json and package.json should not exist anymore
+        expect(existsSync(join(skillDir, 'config.json'))).toBe(false)
+        expect(existsSync(join(skillDir, 'package.json'))).toBe(false)
 
-      // scripts folder should not exist
-      expect(existsSync(join(skillDir, 'scripts'))).toBe(false)
-    })
+        // scripts folder should not exist
+        expect(existsSync(join(skillDir, 'scripts'))).toBe(false)
+      },
+      { timeout: 30_000 }
+    )
   })
 
   describe('Error Cases', () => {

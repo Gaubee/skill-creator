@@ -57,7 +57,7 @@ async function resolveSkillDirectory(commandOptions: {
 program
   .name('skill-creator')
   .description('Create claude-code-skills with documentation management')
-  .version('2.0.0')
+  .version(PackageUtils.getCurrentPackageInfo()?.version ?? '0.0.0')
   .option('--pwd <path>', 'Global path to the skill directory (used for all commands)')
 
 // Handle global options
