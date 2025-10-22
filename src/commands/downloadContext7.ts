@@ -6,8 +6,7 @@ import { join } from 'node:path'
 import { loadSkillConfig, storeSkillConfig, parseArgs, createSearchEngine } from './shared.js'
 
 export async function downloadContext7(args: string[]): Promise<void> {
-  const pwd = process.cwd()
-  const config = loadSkillConfig(pwd)
+  const config = loadSkillConfig()
   const searchEngine = await createSearchEngine(config)
 
   const { ContentManager } = await import('../core/contentManager.js')
@@ -39,7 +38,7 @@ export async function downloadContext7(args: string[]): Promise<void> {
     const result = await contentManager.updateFromContext7(projectId, options.force)
     console.log(`✅ ${result.message}`)
     config.context7ProjectId = projectId
-    storeSkillConfig(pwd, config)
+    storeSkillConfig(config)
 
     // Auto-build ChromaDB index unless skipped
     if (!options['skip-chroma-indexing']) {

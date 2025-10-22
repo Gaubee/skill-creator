@@ -10,7 +10,7 @@ import type { SkillConfig } from '../types/index.js'
 /**
  * Load skill configuration from current directory
  */
-export function loadSkillConfig(pwd: string): SkillConfig {
+export function loadSkillConfig(pwd: string = process.cwd()): SkillConfig {
   const configPath = join(pwd, 'config.json')
   return Config.loadWithDefaults(configPath)
 }
@@ -18,7 +18,7 @@ export function loadSkillConfig(pwd: string): SkillConfig {
 /**
  * Load skill configuration from current directory
  */
-export function storeSkillConfig(pwd: string, config: SkillConfig) {
+export function storeSkillConfig(config: SkillConfig, pwd: string = process.cwd()) {
   const configPath = join(pwd, 'config.json')
   return Config.save(config, configPath)
 }
