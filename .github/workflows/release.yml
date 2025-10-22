@@ -1,7 +1,7 @@
 name: Auto Release to NPM
 
 permissions:
-  contents: write  # Allow pushing tags and creating releases
+  contents: write # Allow pushing tags and creating releases
 
 on:
   push:
@@ -159,7 +159,7 @@ jobs:
   # Create a summary job to show the results
   summary:
     runs-on: ubuntu-latest
-    needs: [check-version, test, publish]
+    needs: [check-version, build-and-test, publish]
     if: always()
 
     steps:
@@ -172,7 +172,7 @@ jobs:
             echo "✅ **New Version Detected**: v${{ needs.check-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
 
-            if [ "${{ needs.test.result }}" == "success" ]; then
+            if [ "${{ needs.build-and-test.result }}" == "success" ]; then
               echo "✅ **Tests**: Passed" >> $GITHUB_STEP_SUMMARY
             else
               echo "❌ **Tests**: Failed" >> $GITHUB_STEP_SUMMARY
