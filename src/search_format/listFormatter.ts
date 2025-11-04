@@ -8,7 +8,7 @@ import type {
   FormattableSearchResult,
   FormattingOptions,
   FormattedResult,
-  SearchFormatter
+  SearchFormatter,
 } from './types.js'
 import { relative } from 'node:path'
 
@@ -24,10 +24,7 @@ export class ListFormatter implements SearchFormatter {
     return 'Simple list format with basic preview'
   }
 
-  format(
-    results: SearchResult[],
-    options: FormattingOptions
-  ): FormattedResult[] {
+  format(results: SearchResult[], options: FormattingOptions): FormattedResult[] {
     const maxPreviewLength = options.maxPreviewLength || 200
 
     return results.map((result, index) => {
@@ -38,7 +35,9 @@ export class ListFormatter implements SearchFormatter {
       let previewContent = result.content
       if (formattableResult.fullContent) {
         // Extract original content from <content lines="N">...</content> format
-        const match = formattableResult.fullContent.match(/^<content lines="\d+">\n(.*)\n<\/content>$/s)
+        const match = formattableResult.fullContent.match(
+          /^<content lines="\d+">\n(.*)\n<\/content>$/s
+        )
         if (match) {
           previewContent = match[1]
         }
@@ -51,7 +50,7 @@ export class ListFormatter implements SearchFormatter {
         result: formattableResult,
         content: preview,
         contentType: 'preview',
-        priority: index
+        priority: index,
       }
     })
   }

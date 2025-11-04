@@ -5,11 +5,20 @@
 import { z } from 'zod'
 import { readFileSync, writeFileSync } from 'node:fs'
 
+export const Context7ProjectInfoSchema = z.object({
+  downloadedAt: z.string(),
+  filesCount: z.number(),
+})
+
 export const SkillConfigSchema = z.object({
+  // Legacy field for backward compatibility
   context7ProjectId: z.string().optional(),
+  // New field to support multiple context7 projects
+  context7Projects: z.record(z.string(), Context7ProjectInfoSchema).optional(),
 })
 
 export type SkillConfig = z.input<typeof SkillConfigSchema>
+export type Context7ProjectInfo = z.input<typeof Context7ProjectInfoSchema>
 
 export class Config {
   static load(filePath: string): SkillConfig {

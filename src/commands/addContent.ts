@@ -3,11 +3,12 @@
  */
 
 import { join } from 'node:path'
-import { loadSkillConfig, parseArgs, createSearchEngine } from './shared.js'
+import { existsSync, readdirSync } from 'node:fs'
+import { parseArgs, createSearchEngine } from './shared.js'
+import { updateSkillMdFile } from '../utils/skillMdManager.js'
 
 export async function addContent(args: string[]): Promise<void> {
-  const config = loadSkillConfig()
-  const searchEngine = await createSearchEngine(config)
+  const searchEngine = await createSearchEngine({})
 
   const { ContentManager } = await import('../core/contentManager.js')
 
@@ -81,5 +82,20 @@ export async function addContent(args: string[]): Promise<void> {
       console.log(`   Source: ${similar.source}`)
       console.log(`   Preview: ${similar.preview}`)
     })
+  }
+
+  // Update SKILL.md with user files list
+  if (result.added || result.updated) {
+    const skillMdPath = join(process.cwd(), 'SKILL.md')
+    if (existsSync(skillMdPath)) {
+      const userDir = join(process.cwd(), 'assets', 'references', 'user')
+      if (existsSync(userDir)) {
+        const files = readdirSync(userDir).filter((f) => f.endsWith('.md'))
+        const fileList = files.map((f) => `- ${f}`).join('\n')
+
+        updateSkillMdFile(skillMdPath, 'user-skills', fileList)
+        console.log(`📝 Updated SKILL.md with user skills`)
+      }
+    }
   }
 }

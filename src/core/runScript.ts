@@ -7,7 +7,8 @@ import { addContent } from '../commands/addContent.js'
 import { downloadContext7 } from '../commands/downloadContext7.js'
 import { init } from '../commands/init.js'
 import { buildIndex } from '../commands/buildIndex.js'
-import { listContent } from '../commands/listContent.js'
+import { listSkills } from '../commands/listSkills.js'
+import { removeSkill } from '../commands/removeSkill.js'
 
 type CommandFunction = (args: string[]) => Promise<void>
 
@@ -18,7 +19,9 @@ const commands: Record<string, CommandFunction> = {
   'download-context7': downloadContext7,
   init: init,
   'build-index': buildIndex,
-  'list-content': listContent,
+  'list-skills': listSkills,
+  'list-content': listSkills, // Backward compatibility
+  'remove-skill': removeSkill,
 }
 
 export async function runScript(script: string, args: string[]): Promise<void> {

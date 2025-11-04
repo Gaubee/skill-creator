@@ -3,11 +3,12 @@
  */
 
 import { join } from 'node:path'
-import { loadSkillConfig, storeSkillConfig, parseArgs, createSearchEngine } from './shared.js'
+import { existsSync } from 'node:fs'
+import { parseArgs, createSearchEngine } from './shared.js'
+import { updateSkillMdFile } from '../utils/skillMdManager.js'
 
 export async function downloadContext7(args: string[]): Promise<void> {
-  const config = loadSkillConfig()
-  const searchEngine = await createSearchEngine(config)
+  const searchEngine = await createSearchEngine({})
 
   const { ContentManager } = await import('../core/contentManager.js')
 
@@ -23,10 +24,10 @@ export async function downloadContext7(args: string[]): Promise<void> {
     { name: 'skip-chroma-indexing', type: 'boolean' },
   ])
 
-  const projectId = options['project-id'] || config.context7ProjectId
+  const projectId = options['project-id']
   if (!projectId) {
     console.error('❌ No Context7 project ID provided')
-    console.error('   Use --project-id <id> or set context7LibraryId in config.json')
+    console.error('   Use --project-id <id>')
     process.exit(1)
   }
 
@@ -37,8 +38,16 @@ export async function downloadContext7(args: string[]): Promise<void> {
     // Download documentation
     const result = await contentManager.updateFromContext7(projectId, options.force)
     console.log(`✅ ${result.message}`)
-    config.context7ProjectId = projectId
-    storeSkillConfig(config)
+
+    // Update SKILL.md with the file list
+    const skillMdPath = join(process.cwd(), 'SKILL.md')
+    if (existsSync(skillMdPath)) {
+      const files = contentManager.getContext7ProjectFiles(projectId)
+      const fileList = files.map((f) => `- ${f}`).join('\n')
+
+      updateSkillMdFile(skillMdPath, 'context7-skills', fileList, projectId)
+      console.log(`📝 Updated SKILL.md with ${files.length} files`)
+    }
 
     // Auto-build ChromaDB index unless skipped
     if (!options['skip-chroma-indexing']) {

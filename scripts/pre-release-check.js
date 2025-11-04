@@ -79,7 +79,7 @@ try {
     const currentVersion = packageJson.version
     const publishedVersion = execSync('npm view skill-creator version', {
       encoding: 'utf-8',
-      stdio: 'pipe'
+      stdio: 'pipe',
     }).trim()
 
     if (currentVersion === publishedVersion) {
@@ -97,7 +97,6 @@ try {
   console.log('   1. Update version if needed: npm version patch|minor|major')
   console.log('   2. Push to GitHub: git push origin main --tags')
   console.log('   3. Monitor GitHub Actions for automatic release')
-
 } catch (error) {
   console.error('\n❌ Validation failed:', error.message)
   process.exit(1)

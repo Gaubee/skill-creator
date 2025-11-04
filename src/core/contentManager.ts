@@ -31,14 +31,21 @@ export interface ContentManagerOptions {
 export class ContentManager {
   private options: ContentManagerOptions
   private userDir: string
-  private context7Dir: string
+  private context7BaseDir: string
   private md: MarkdownIt
 
   constructor(options: ContentManagerOptions) {
     this.options = options
     this.userDir = join(options.referencesDir, 'user')
-    this.context7Dir = join(options.referencesDir, 'context7')
+    this.context7BaseDir = join(options.referencesDir, 'context7')
     this.md = new MarkdownIt()
+  }
+
+  /**
+   * Get the directory path for a specific context7 project
+   */
+  private getContext7ProjectDir(projectId: string): string {
+    return join(this.context7BaseDir, projectId)
   }
 
   async updateFromContext7(
@@ -56,38 +63,41 @@ export class ContentManager {
       // Download content
       const content = await this.downloadContext7Doc(libraryId)
 
+      // Get project-specific directory
+      const projectDir = this.getContext7ProjectDir(libraryId)
+
       // Check if update needed
-      if (!force && !this.needsUpdate(content)) {
+      if (!force && !this.needsUpdate(content, libraryId)) {
         result.skipped = true
         result.message = 'Context7 documentation is up to date'
         return result
       }
 
-      // Clear existing context7 docs
-      if (existsSync(this.context7Dir)) {
-        const files = readdirSync(this.context7Dir)
+      // Clear existing context7 docs for this project
+      if (existsSync(projectDir)) {
+        const files = readdirSync(projectDir)
         for (const file of files) {
           if (file.endsWith('.md')) {
-            rmSync(join(this.context7Dir, file))
+            rmSync(join(projectDir, file))
           }
         }
       }
 
       // Ensure directory exists
-      mkdirSync(this.context7Dir, { recursive: true })
+      mkdirSync(projectDir, { recursive: true })
 
       // Slice and save
-      const savedFiles = await this.sliceDocument(content, this.context7Dir)
+      const savedFiles = await this.sliceDocument(content, projectDir)
       result.filesCreated = savedFiles.length
 
-      // Save hash
-      this.saveContentHash(content)
+      // Save hash for this project
+      this.saveContentHash(content, libraryId)
 
       // Trigger reindex
       this.triggerReindex()
 
       result.updated = true
-      result.message = `Updated ${savedFiles.length} documentation slices`
+      result.message = `Updated ${savedFiles.length} documentation slices for project ${libraryId}`
     } catch (error) {
       result.message = `Failed to update Context7 docs: ${error}`
     }
@@ -218,7 +228,7 @@ export class ContentManager {
       context7Files: 0,
       totalFiles: 0,
       userDirExists: existsSync(this.userDir),
-      context7DirExists: existsSync(this.context7Dir),
+      context7DirExists: existsSync(this.context7BaseDir),
     }
 
     if (stats.userDirExists) {
@@ -226,7 +236,17 @@ export class ContentManager {
     }
 
     if (stats.context7DirExists) {
-      stats.context7Files = readdirSync(this.context7Dir).filter((f) => f.endsWith('.md')).length
+      // Count files in all context7 project subdirectories
+      const projects = readdirSync(this.context7BaseDir, { withFileTypes: true })
+        .filter((dirent) => dirent.isDirectory())
+        .map((dirent) => dirent.name)
+
+      for (const projectId of projects) {
+        const projectDir = this.getContext7ProjectDir(projectId)
+        if (existsSync(projectDir)) {
+          stats.context7Files += readdirSync(projectDir).filter((f) => f.endsWith('.md')).length
+        }
+      }
     }
 
     stats.totalFiles = stats.userFiles + stats.context7Files
@@ -236,17 +256,14 @@ export class ContentManager {
   listContent(source?: 'user' | 'context7'): ContentItem[] {
     const contentList: ContentItem[] = []
 
-    const dirsToSearch = []
-    if (source === 'user' || !source) dirsToSearch.push(['user', this.userDir])
-    if (source === 'context7' || !source) dirsToSearch.push(['context7', this.context7Dir])
-
-    for (const [sourceName, dirPath] of dirsToSearch) {
-      if (existsSync(dirPath)) {
-        const files = readdirSync(dirPath)
+    // List user content
+    if (source === 'user' || !source) {
+      if (existsSync(this.userDir)) {
+        const files = readdirSync(this.userDir)
         for (const file of files) {
           if (!file.endsWith('.md')) continue
 
-          const filePath = join(dirPath, file)
+          const filePath = join(this.userDir, file)
           const stat = statSync(filePath)
 
           let title = file.replace('.md', '')
@@ -263,11 +280,53 @@ export class ContentManager {
           contentList.push({
             title,
             filename: file,
-            source: sourceName as 'user' | 'context7',
+            source: 'user',
             path: filePath,
             size: stat.size,
             modified: stat.mtime || new Date(),
           })
+        }
+      }
+    }
+
+    // List context7 content from all projects
+    if (source === 'context7' || !source) {
+      if (existsSync(this.context7BaseDir)) {
+        const projects = readdirSync(this.context7BaseDir, { withFileTypes: true })
+          .filter((dirent) => dirent.isDirectory())
+          .map((dirent) => dirent.name)
+
+        for (const projectId of projects) {
+          const projectDir = this.getContext7ProjectDir(projectId)
+          if (existsSync(projectDir)) {
+            const files = readdirSync(projectDir)
+            for (const file of files) {
+              if (!file.endsWith('.md')) continue
+
+              const filePath = join(projectDir, file)
+              const stat = statSync(filePath)
+
+              let title = file.replace('.md', '')
+              try {
+                const content = readFileSync(filePath, 'utf-8')
+                const firstLine = content.split('\n')[0]
+                if (firstLine?.startsWith('# ')) {
+                  title = firstLine.slice(2)
+                }
+              } catch {
+                // Use filename if can't read
+              }
+
+              contentList.push({
+                title,
+                filename: file,
+                source: 'context7',
+                path: filePath,
+                size: stat.size,
+                modified: stat.mtime || new Date(),
+              })
+            }
+          }
         }
       }
     }
@@ -481,14 +540,20 @@ export class ContentManager {
     return newWords > existingWords * 1.3
   }
 
-  private saveContentHash(content: string): void {
+  private getHashFilePath(projectId: string): string {
+    // Sanitize project ID for use in filename (replace slashes with underscores)
+    const safeProjectId = projectId.replace(/\//g, '_')
+    return join(this.options.referencesDir, '..', `.context7_hash_${safeProjectId}`)
+  }
+
+  private saveContentHash(content: string, projectId: string): void {
     const hash = createHash('md5').update(content).digest('hex')
-    const hashFile = join(this.options.referencesDir, '..', '.context7_hash')
+    const hashFile = this.getHashFilePath(projectId)
     writeFileSync(hashFile, hash)
   }
 
-  private needsUpdate(content: string): boolean {
-    const hashFile = join(this.options.referencesDir, '..', '.context7_hash')
+  private needsUpdate(content: string, projectId: string): boolean {
+    const hashFile = this.getHashFilePath(projectId)
 
     if (!existsSync(hashFile)) {
       return true
@@ -504,6 +569,86 @@ export class ContentManager {
     const hashFile = join(this.options.referencesDir, '..', '.last_index_hash')
     if (existsSync(hashFile)) {
       rmSync(hashFile)
+    }
+  }
+
+  /**
+   * List all context7 projects
+   */
+  listContext7Projects(): Array<{ projectId: string; filesCount: number; directory: string }> {
+    const projects: Array<{ projectId: string; filesCount: number; directory: string }> = []
+
+    if (!existsSync(this.context7BaseDir)) {
+      return projects
+    }
+
+    const projectDirs = readdirSync(this.context7BaseDir, { withFileTypes: true })
+      .filter((dirent) => dirent.isDirectory())
+      .map((dirent) => dirent.name)
+
+    for (const projectId of projectDirs) {
+      const projectDir = this.getContext7ProjectDir(projectId)
+      if (existsSync(projectDir)) {
+        const files = readdirSync(projectDir).filter((f) => f.endsWith('.md'))
+        projects.push({
+          projectId,
+          filesCount: files.length,
+          directory: projectDir,
+        })
+      }
+    }
+
+    return projects
+  }
+
+  /**
+   * Get files for a specific context7 project
+   */
+  getContext7ProjectFiles(projectId: string): string[] {
+    const projectDir = this.getContext7ProjectDir(projectId)
+
+    if (!existsSync(projectDir)) {
+      return []
+    }
+
+    return readdirSync(projectDir).filter((f) => f.endsWith('.md'))
+  }
+
+  /**
+   * Remove a context7 project
+   */
+  removeContext7Project(projectId: string): { success: boolean; message: string } {
+    const projectDir = this.getContext7ProjectDir(projectId)
+
+    if (!existsSync(projectDir)) {
+      return {
+        success: false,
+        message: `Context7 project ${projectId} does not exist`,
+      }
+    }
+
+    try {
+      // Remove project directory
+      rmSync(projectDir, { recursive: true, force: true })
+
+      // Remove project hash file
+      const hashFile = this.getHashFilePath(projectId)
+      if (existsSync(hashFile)) {
+        rmSync(hashFile)
+      }
+
+      // Trigger reindex
+      this.triggerReindex()
+
+      return {
+        success: true,
+        message: `Context7 project ${projectId} removed successfully`,
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to remove Context7 project ${projectId}: ${error}`,
+      }
     }
   }
 }

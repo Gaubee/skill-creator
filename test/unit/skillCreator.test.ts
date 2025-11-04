@@ -147,7 +147,9 @@ describe('SkillCreator', () => {
       // Check template variable replacement
       expect(content).toContain('name: test-template')
       expect(content).toContain('Test template skill for documentation')
-      expect(content).toContain('You are a specialized test-template expert assistant')
+      expect(content).toContain('skill-creator add-skill --pwd') // Check CLI commands section
+      expect(content).toContain('<user-skills>') // Check user skills tag
+      expect(content).toContain('## Context7 Documentation') // Check context7 section
       expect(content).toContain(result.skillPath) // {{SKILL_PATH}} should be replaced
 
       // Check that default description is used when none provided

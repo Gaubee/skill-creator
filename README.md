@@ -5,16 +5,17 @@ A powerful composite tool for creating and managing Claude Code skills. It serve
 1. **CLI Tool** - A TypeScript/Node.js command-line interface for skill management
 2. **Claude Code Subagent** - An intelligent agent that automates skill creation workflow
 
-
 ## Features
 
 ### Core Capabilities
+
 - 🚀 **Automated Skill Creation**: Generate skills with proper folder naming (`package@version` format)
 - 📚 **Context7 Integration**: Download and slice documentation from Context7 with automatic project ID detection
 - 🔍 **Intelligent Search**: ChromaDB-powered semantic search with automatic indexing
 - 💾 **Dynamic Content Management**: Add custom knowledge with deduplication
 
 ### CLI & Subagent
+
 - 🛠️ **Modern TypeScript**: Full type safety with ESM modules
 - 🎯 **Interactive CLI**: Professional command-line interface with inquirer prompts
 - 🤖 **Subagent Mode**: Intelligent agent that handles the entire skill creation workflow
@@ -111,9 +112,11 @@ skill-creator init
 ### 3. Choose Your Usage Mode
 
 #### CLI Mode - Full Control
+
 Use commands directly for complete control over the skill creation process.
 
 #### Subagent Mode - Effortless
+
 Simply describe what you want, and let the subagent handle everything automatically.
 
 ```
@@ -150,18 +153,18 @@ skill-creator search-skill --package @tanstack/react-query "useQuery hook"
 
 ### Installation & Setup
 
-| Command                  | Description                                          |
-| ------------------------ | ---------------------------------------------------- |
-| `init`                   | Install skill-creator as Claude Code subagent (interactive) |
-| `init-cc`                | Install skill-creator as subagent in user directory  |
+| Command   | Description                                                 |
+| --------- | ----------------------------------------------------------- |
+| `init`    | Install skill-creator as Claude Code subagent (interactive) |
+| `init-cc` | Install skill-creator as subagent in user directory         |
 
 ### Skill Creation (CLI Mode)
 
-| Command                  | Description                                          |
-| ------------------------ | ---------------------------------------------------- |
-| `search <keywords>`      | Search npm packages                                  |
-| `get-info <package>`     | Get detailed package information                     |
-| `create-cc-skill <name>` | Create a new skill directory                         |
+| Command                  | Description                      |
+| ------------------------ | -------------------------------- |
+| `search <keywords>`      | Search npm packages              |
+| `get-info <package>`     | Get detailed package information |
+| `create-cc-skill <name>` | Create a new skill directory     |
 
 ### Content Management
 

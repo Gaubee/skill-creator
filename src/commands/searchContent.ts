@@ -3,13 +3,11 @@
  */
 
 import { join } from 'node:path'
-import { loadSkillConfig, parseArgs, createSearchEngine } from './shared.js'
+import { parseArgs, createSearchEngine } from './shared.js'
 import { createFormatter } from '../search_format/index.js'
 import type { FormattingOptions } from '../search_format/types.js'
 
 export async function searchContent(args: string[]): Promise<void> {
-  const config = loadSkillConfig()
-
   // Parse arguments
   const options = parseArgs(args, [
     { name: 'query', alias: 'q', type: 'string', required: true },
@@ -26,11 +24,10 @@ export async function searchContent(args: string[]): Promise<void> {
   }
 
   // Create search engine
-  const searchEngine = await createSearchEngine(
-    config,
-    options.mode as 'auto' | 'fuzzy' | 'chroma',
-    false // We'll handle formatting manually for now
-  )
+  const searchEngine = await createSearchEngine({
+    searchMode: options.mode as 'auto' | 'fuzzy' | 'chroma',
+    useFormatting: false, // We'll handle formatting manually for now
+  })
 
   // Initialize search engine
   await searchEngine.initialize()

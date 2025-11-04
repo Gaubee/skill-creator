@@ -25,8 +25,8 @@
 4. 点击 **New repository secret**
 5. 添加以下 secret：
 
-| Secret 名称 | 值 | 描述 |
-|-------------|----|----- |
+| Secret 名称 | 值                        | 描述             |
+| ----------- | ------------------------- | ---------------- |
 | `NPM_TOKEN` | 你的 NPM Automation Token | 用于发布包到 NPM |
 
 ### 3. 配置 GitHub Actions 权限
@@ -39,7 +39,7 @@
 
 ```yaml
 permissions:
-  contents: write  # 允许推送标签和创建 Releases
+  contents: write # 允许推送标签和创建 Releases
 ```
 
 #### 方法二：在仓库设置中配置（可选）
@@ -57,6 +57,7 @@ permissions:
 ### 4. 确保仓库权限
 
 确保你有以下权限：
+
 - ✅ 推送代码到 `main` 分支的权限
 - ✅ 管理 GitHub Secrets 的权限
 - ✅ 创建 GitHub Releases 的权限
@@ -65,15 +66,18 @@ permissions:
 ## 🔧 工作流程
 
 ### 自动触发
+
 - 当代码推送到 `main` 分支时自动触发
 - 检查 `package.json` 版本是否已发布到 NPM
 - 如果是新版本，自动运行测试并发布
 
 ### 手动触发
+
 - 在 GitHub Actions 页面可以手动触发工作流
 - 适用于重新发布或测试场景
 
 ### 发布步骤
+
 1. **版本检查**：比较当前版本与 NPM 已发布版本
 2. **运行测试**：执行所有测试和类型检查
 3. **构建项目**：编译 TypeScript 代码
@@ -86,18 +90,20 @@ permissions:
 ### 发布新版本
 
 1. 更新 `package.json` 中的版本号：
+
    ```bash
    # 补丁版本（修复 bug）
    npm version patch
-   
+
    # 次要版本（新功能）
    npm version minor
-   
+
    # 主要版本（破坏性变更）
    npm version major
    ```
 
 2. 推送到 GitHub：
+
    ```bash
    git push origin main --tags
    ```
@@ -116,16 +122,19 @@ permissions:
 ## ⚠️ 注意事项
 
 ### 版本号规范
+
 - 遵循 [Semantic Versioning](https://semver.org/) 规范
 - 使用 `npm version` 命令更新版本号（推荐）
 - 不要重复使用已发布的版本号
 
 ### 测试要求
+
 - 所有测试必须通过才能发布
 - 类型检查必须通过
 - 项目必须能成功构建
 
 ### 权限管理
+
 - NPM Token 具有发布权限，请妥善保管
 - 定期轮换 NPM Token 以提高安全性
 - 不要在代码中硬编码任何敏感信息
@@ -139,6 +148,7 @@ A: 检查 `NPM_TOKEN` 是否正确设置，确保 Token 没有过期
 
 **Q: Action 失败，提示 "Permission to X.git denied to github-actions[bot]"**
 A: 这是 GitHub Actions 权限问题，检查以下内容：
+
 - 确认 `.github/workflows/release.yml` 文件顶部包含 `permissions: contents: write`
 - 确认仓库的 Actions 权限设置为 "Read and write permissions"
 - 确认你有推送标签的权限
@@ -162,6 +172,7 @@ A: 确保你有推送标签和创建 Release 的权限
 ## 📊 监控
 
 建议设置以下监控：
+
 - GitHub Actions 成功/失败通知
 - NPM 下载量统计
 - 依赖安全扫描

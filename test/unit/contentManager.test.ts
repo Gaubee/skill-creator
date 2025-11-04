@@ -96,7 +96,9 @@ describe('ContentManager', () => {
       // Create some test files
       writeFileSync(join(referencesDir, 'user', 'doc1.md'), '# Doc 1')
       writeFileSync(join(referencesDir, 'user', 'doc2.md'), '# Doc 2')
-      writeFileSync(join(referencesDir, 'context7', 'doc3.md'), '# Doc 3')
+      // Context7 files are now in project subdirectories
+      mkdirSync(join(referencesDir, 'context7', 'test-project'), { recursive: true })
+      writeFileSync(join(referencesDir, 'context7', 'test-project', 'doc3.md'), '# Doc 3')
 
       const stats = contentManager.getContentStats()
 
@@ -125,7 +127,9 @@ describe('ContentManager', () => {
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
       writeFileSync(join(referencesDir, 'user', 'user-doc.md'), '# User Doc')
-      writeFileSync(join(referencesDir, 'context7', 'api-doc.md'), '# API Doc')
+      // Context7 files are now in project subdirectories
+      mkdirSync(join(referencesDir, 'context7', 'test-project'), { recursive: true })
+      writeFileSync(join(referencesDir, 'context7', 'test-project', 'api-doc.md'), '# API Doc')
 
       // Mock file stats with different times to ensure consistent order
       vi.mock('node:fs', () => ({
@@ -319,12 +323,26 @@ describe('ContentManager', () => {
 
   describe('updateFromContext7', () => {
     it('should handle successful update', async () => {
-      // Mock successful download with longer content
+      // Mock successful download with longer content that meets minimum section length
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         text: () =>
           Promise.resolve(
-            '# API Documentation\n\nThis is the API documentation with enough content to be processed. It includes detailed information about the API endpoints, parameters, and usage examples. The content is comprehensive enough to pass the minimum length requirements for document slicing.'
+            `# API Documentation
+
+This is the API documentation with enough content to be processed properly.
+
+## Getting Started
+
+This section provides a comprehensive guide to getting started with the API. It includes detailed information about authentication, basic requests, and common patterns. You'll learn how to make your first API call and understand the response format.
+
+## Authentication
+
+To use the API, you need to obtain an API key from your account dashboard. Include this key in the Authorization header of all your requests. The API uses Bearer token authentication for secure access to resources.
+
+## Endpoints
+
+The API provides various endpoints for different operations. Each endpoint supports specific HTTP methods and requires certain parameters. Understanding these endpoints is crucial for effective API integration.`
           ),
       })
 
@@ -348,15 +366,23 @@ describe('ContentManager', () => {
     })
 
     it('should skip update if not needed', async () => {
-      // First update
+      // First update with sufficient content
+      const testContent = `# API Documentation
+
+This is detailed API documentation with enough content to pass validation and be properly indexed.
+
+## Overview
+
+The API provides comprehensive functionality for managing resources. Each endpoint is designed with REST principles and returns JSON responses.`
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve('# API Documentation\nContent'),
+        text: () => Promise.resolve(testContent),
       })
 
       await contentManager.updateFromContext7('/api/docs', false)
 
-      // Second update should skip
+      // Second update should skip (same content)
       const result = await contentManager.updateFromContext7('/api/docs', false)
 
       expect(result.skipped).toBe(true)
@@ -364,10 +390,18 @@ describe('ContentManager', () => {
     })
 
     it('should force update when specified', async () => {
-      // First update
+      // First update with sufficient content
+      const testContent = `# API Documentation
+
+This is detailed API documentation with enough content to pass validation and be properly indexed for searching.
+
+## Features
+
+The API includes many powerful features for developers including authentication, rate limiting, and comprehensive error handling.`
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve('# API Documentation\nContent'),
+        text: () => Promise.resolve(testContent),
       })
 
       await contentManager.updateFromContext7('/api/docs', false)

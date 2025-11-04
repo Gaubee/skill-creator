@@ -64,7 +64,7 @@
    1. **搜索包**: 根据用户需求，通过 `cli search "KEYWORDS"` 来搜索 npm 包。如果结果不唯一，AI 需要向用户确认。
    2. **获取包信息**: 针对选定的包，运行 `cli get-info @package/name`。这将返回一个包含 `skill_dir_name`, `name`, `version`, `homepage`, `repo` 等信息的 JSON 对象。
    3. **创建技能**: AI 根据 `get-info` 的结果，确认存储位置后，调用 `cli create-cc-skill --scope [current|user] --name <package_name> skill_dir_name --description "..."` 来创建技能目录和基础文件。
-   **注意**: 
+      **注意**:
    - `--scope` 是必须参数，必须指定存储位置（current表示当前项目，user表示用户目录）
    - `--name` 是推荐参数，指定包名，避免从目录名猜测
    4. **获取文档 ID**: AI 调用 `mcp-context7` 工具来搜索并根据 `skill-creator.md` 中定义的“评判标准”（Code Snippets 数量最多）来确定唯一的 `project-id`。

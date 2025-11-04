@@ -7,7 +7,7 @@ export type {
   FormattableSearchResult,
   FormattingOptions,
   FormattedResult,
-  SearchFormatter
+  SearchFormatter,
 } from './types.js'
 
 export { ListFormatter } from './listFormatter.js'

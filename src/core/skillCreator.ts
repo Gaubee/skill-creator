@@ -59,22 +59,23 @@ export class SkillCreator {
 
       return result
     } catch (error) {
-      result.message = `Failed to create skill: ${error}`
+      result.message = `Failed to create skill: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`
       return result
     }
   }
 
   private createDirectoryStructure(skillDir: string): void {
     const dirs = [
-      'assets/references/context7',
-      'assets/references/user',
-      'assets/chroma_db',
-      'assets/logs',
+      'assets/references/context7', // Base directory for all context7 projects
+      'assets/references/user', // User-created content
+      'assets/chroma_db', // ChromaDB data
+      'assets/logs', // Logs
     ]
 
     for (const dir of dirs) {
       const dirPath = join(skillDir, dir)
       mkdirSync(dirPath, { recursive: true })
+      // Only add .gitkeep to empty directories that should exist
       writeFileSync(join(dirPath, '.gitkeep'), '')
     }
   }

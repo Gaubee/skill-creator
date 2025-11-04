@@ -49,7 +49,6 @@ npm install -g skill-creator
    ```
 
    **Note**: `--scope` is a required parameter
-
    - **Storage Location Confirmation**:
      - Current project (`--scope current`): `./.claude/skills/`
      - User directory (`--scope user`): `~/.claude/skills`

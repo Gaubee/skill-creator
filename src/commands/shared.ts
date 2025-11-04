@@ -3,25 +3,6 @@
  */
 
 import { join } from 'node:path'
-import { existsSync } from 'node:fs'
-import { Config } from '../utils/config.js'
-import type { SkillConfig } from '../types/index.js'
-
-/**
- * Load skill configuration from current directory
- */
-export function loadSkillConfig(pwd: string = process.cwd()): SkillConfig {
-  const configPath = join(pwd, 'config.json')
-  return Config.loadWithDefaults(configPath)
-}
-
-/**
- * Load skill configuration from current directory
- */
-export function storeSkillConfig(config: SkillConfig, pwd: string = process.cwd()) {
-  const configPath = join(pwd, 'config.json')
-  return Config.save(config, configPath)
-}
 
 /**
  * Parse command line arguments
@@ -90,17 +71,19 @@ export function parseArgs(
  * Create search engine instance
  */
 export async function createSearchEngine(
-  config: SkillConfig,
-  searchMode: 'chroma' | 'fuzzy' | 'auto' = 'auto',
-  useFormatting: boolean = true
+  options: {
+    searchMode?: 'chroma' | 'fuzzy' | 'auto'
+    useFormatting?: boolean
+  } = {}
 ) {
+  const { searchMode = 'auto', useFormatting = true } = options
   const { UnifiedSearchEngine } = await import('../core/unifiedSearch.js')
 
   return new UnifiedSearchEngine({
     mode: searchMode,
     skillDir: join(process.cwd(), 'assets'),
     referencesDir: join(process.cwd(), 'assets', 'references'),
-    config,
+    config: {}, // No longer needed
     skillPath: process.cwd(),
     format: useFormatting ? 'enhanced' : undefined,
     adapterOptions: {

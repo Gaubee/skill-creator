@@ -3,11 +3,10 @@
  */
 
 import { join } from 'node:path'
-import { loadSkillConfig, createSearchEngine } from './shared.js'
+import { createSearchEngine } from './shared.js'
 
 export async function buildIndex(args: string[]): Promise<void> {
-  const config = loadSkillConfig()
-  const searchEngine = await createSearchEngine(config)
+  const searchEngine = await createSearchEngine({})
 
   console.log('Building simple search index...')
 

@@ -161,6 +161,12 @@ program
           description = customDescription.trim()
         }
       }
+
+      if (scope == null) {
+        scope = existsSync(join(process.cwd(), '.claude/agents/skill-creator.md'))
+          ? 'current'
+          : 'user'
+      }
       if (scope === 'user') {
         scope = path.join(homedir(), '.claude/skills')
       } else if (scope === 'current') {
@@ -200,7 +206,10 @@ program
       })
       console.log(`Skill created successfully at: ${skillPath}`)
     } catch (error) {
-      console.error('Error:', error instanceof Error ? error.message : String(error))
+      console.error(
+        'Error:',
+        error instanceof Error ? (error.stack ?? error.message) : String(error)
+      )
       process.exit(1)
     }
   })
@@ -419,11 +428,144 @@ program
 
 // Add sub-commands for script execution
 program
-  .command('list-content')
+  .command('list-skills')
+  .description('List all skill content files')
   .option('--pwd <path>', 'Path to the skill directory')
+  .option('--package <name>', 'Package name to find skill directory for')
   .action(async (options) => {
-    const { runScript } = await import('./core/runScript.js')
-    await runScript('list-content', process.argv.slice(4))
+    try {
+      const skillDir = await resolveSkillDirectory(options)
+
+      console.log(gradient('cyan', 'magenta')('\n📚 Skill Content'))
+      console.log(`Skill Path: ${skillDir}`)
+
+      const { chdir } = await import('node:process')
+      const originalCwd = process.cwd()
+      chdir(skillDir)
+
+      try {
+        const { runScript } = await import('./core/runScript.js')
+        await runScript(
+          'list-skills',
+          process.argv
+            .slice(3)
+            .filter(
+              (arg) =>
+                !arg.startsWith('--pwd') &&
+                !arg.startsWith('--package') &&
+                arg !== options.pwd &&
+                arg !== options.package
+            )
+        )
+      } finally {
+        chdir(originalCwd)
+      }
+    } catch (error) {
+      console.error(error)
+      process.exit(1)
+    }
+  })
+
+// Add remove-skill command
+program
+  .command('remove-skill')
+  .description('Remove a skill file')
+  .option('--pwd <path>', 'Path to the skill directory')
+  .option('--package <name>', 'Package name to find skill directory for')
+  .option('--type <type>', 'Type: user or context7:<project_id>', 'user')
+  .option('--file <file>', 'File name to remove')
+  .action(async (options) => {
+    try {
+      if (!options.file) {
+        console.error('❌ Please provide --file <filename>')
+        process.exit(1)
+      }
+
+      const skillDir = await resolveSkillDirectory(options)
+
+      console.log(gradient('cyan', 'magenta')('\n🗑️  Remove Skill File'))
+      console.log(`Skill Path: ${skillDir}`)
+      console.log(`Type: ${options.type}`)
+      console.log(`File: ${options.file}`)
+
+      const { chdir } = await import('node:process')
+      const originalCwd = process.cwd()
+      chdir(skillDir)
+
+      try {
+        const { removeSkill } = await import('./commands/removeSkill.js')
+        await removeSkill(['--type', options.type, '--file', options.file])
+      } finally {
+        chdir(originalCwd)
+      }
+
+      console.log(gradient('green', 'cyan')('\n✅ Skill file removed!'))
+    } catch (error) {
+      console.error(error)
+      process.exit(1)
+    }
+  })
+
+// Add list-context7 command
+program
+  .command('list-context7')
+  .description('List all Context7 projects')
+  .option('--pwd <path>', 'Path to the skill directory')
+  .option('--package <name>', 'Package name to find skill directory for')
+  .action(async (options) => {
+    try {
+      const skillDir = await resolveSkillDirectory(options)
+
+      console.log(gradient('cyan', 'magenta')('\n📦 Context7 Projects'))
+      console.log(`Skill Path: ${skillDir}`)
+
+      const { chdir } = await import('node:process')
+      const originalCwd = process.cwd()
+      chdir(skillDir)
+
+      try {
+        const { listContext7 } = await import('./commands/listContext7.js')
+        await listContext7()
+      } finally {
+        chdir(originalCwd)
+      }
+    } catch (error) {
+      console.error(error)
+      process.exit(1)
+    }
+  })
+
+// Add remove-context7 command
+program
+  .command('remove-context7')
+  .argument('<project_id>', 'Context7 project ID to remove')
+  .description('Remove a Context7 project')
+  .option('--pwd <path>', 'Path to the skill directory')
+  .option('--package <name>', 'Package name to find skill directory for')
+  .action(async (projectId, options) => {
+    try {
+      const skillDir = await resolveSkillDirectory(options)
+
+      console.log(gradient('cyan', 'magenta')('\n🗑️  Remove Context7 Project'))
+      console.log(`Skill Path: ${skillDir}`)
+      console.log(`Project ID: ${projectId}`)
+
+      const { chdir } = await import('node:process')
+      const originalCwd = process.cwd()
+      chdir(skillDir)
+
+      try {
+        const { removeContext7 } = await import('./commands/removeContext7.js')
+        await removeContext7(['--project-id', projectId])
+      } finally {
+        chdir(originalCwd)
+      }
+
+      console.log(gradient('green', 'cyan')('\n✅ Context7 project removed!'))
+    } catch (error) {
+      console.error(error)
+      process.exit(1)
+    }
   })
 
 // Export for testing

@@ -1,13 +1,12 @@
 /**
- * List content command
+ * List skills command
  */
 
 import { join } from 'node:path'
-import { loadSkillConfig, parseArgs, createSearchEngine } from './shared.js'
+import { parseArgs, createSearchEngine } from './shared.js'
 
-export async function listContent(args: string[]): Promise<void> {
-  const config = loadSkillConfig()
-  const searchEngine = await createSearchEngine(config)
+export async function listSkills(args: string[]): Promise<void> {
+  const searchEngine = await createSearchEngine({})
 
   const { ContentManager } = await import('../core/contentManager.js')
 

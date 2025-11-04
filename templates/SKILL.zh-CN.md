@@ -1,5 +1,5 @@
 ---
-name: {{NAME}}
+name: { { NAME } }
 description: 通过智能搜索增强的 {{NAME}} 文档技能
 ---
 
@@ -10,12 +10,14 @@ description: 通过智能搜索增强的 {{NAME}} 文档技能
 {{DESCRIPTION}}
 
 ### 核心特性
+
 - **智能搜索**: 基于ChromaDB的语义搜索，快速定位相关信息
 - **动态内容管理**: 支持添加自定义知识点，智能去重和更新
 - **Context7集成**: 自动获取和切片最新官方文档
 - **优先级管理**: 用户生成内容优先于官方文档
 
 ### 设计理念
+
 基于官方文档和社区最佳实践，确保信息的准确性和时效性
 
 注重实用性，提供可直接应用的代码示例和配置方案
@@ -25,6 +27,7 @@ description: 通过智能搜索增强的 {{NAME}} 文档技能
 持续更新，跟随版本迭代不断优化和完善知识库
 
 ### 解决的问题
+
 - **学习曲线复杂**: 通过结构化的知识点和实例，降低学习门槛
 - **文档分散**: 整合官方文档、社区经验和实践案例，提供一站式参考
 - **最佳实践缺失**: 总结常见设计模式和最佳实践，避免常见陷阱
@@ -33,14 +36,17 @@ description: 通过智能搜索增强的 {{NAME}} 文档技能
 ## 使用指南
 
 ### 搜索文档知识点
+
 查询{{NAME}}的相关信息、API使用、最佳实践等：
 
 #### 基础搜索
+
 ```bash
 skill-creator search-skill --pwd="{{SKILL_PATH}}" "搜索关键词"
 ```
 
 #### 搜索模式选择
+
 ```bash
 # 自动模式（默认）- 智能选择搜索策略
 skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=auto "搜索关键词"
@@ -55,6 +61,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "搜索关键词"
 #### 搜索模式详解
 
 **🤖 Auto 模式（自动模式，默认）**
+
 - **工作原理**: 首先使用 Fuzzy 搜索进行快速匹配，如果没有找到满意结果，自动切换到 ChromaDB 进行语义搜索
 - **适用场景**:
   - 不确定使用哪种搜索方式时
@@ -63,6 +70,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "搜索关键词"
 - **优势**: 智能切换，兼顾速度和准确性，用户体验最佳
 
 **🧠 ChromaDB 模式（语义搜索）**
+
 - **工作原理**: 基于向量数据库和语义模型，理解查询意图和上下文含义，进行概念匹配
 - **适用场景**:
   - 概念性查询（"如何处理状态管理"）
@@ -77,6 +85,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "搜索关键词"
   - 需要构建搜索索引
 
 **🔍 Fuzzy 模式（模糊搜索）**
+
 - **工作原理**: 基于字符串模糊匹配算法，快速查找包含指定关键词的内容
 - **适用场景**:
   - 精确关键词搜索（"useQuery"、"useState"）
@@ -93,6 +102,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "搜索关键词"
 #### 实用搜索示例
 
 **API 和方法查询**（推荐 Fuzzy 模式）:
+
 ```bash
 # 查找特定API
 skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "useQuery"
@@ -102,6 +112,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=fuzzy "baseURL配置"
 ```
 
 **概念和最佳实践查询**（推荐 ChromaDB 模式）:
+
 ```bash
 # 概念性问题
 skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=chroma "如何优化React组件性能"
@@ -111,6 +122,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=chroma "状态管理最
 ```
 
 **日常查询**（使用 Auto 模式）:
+
 ```bash
 # 让系统自动选择最佳搜索方式
 skill-creator search-skill --pwd="{{SKILL_PATH}}" --mode=auto "错误处理"
@@ -118,12 +130,15 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" "路由配置"  # --mode=auto 
 ```
 
 #### 列表模式显示
+
 如果只需要查看简要信息，可以使用列表模式：
+
 ```bash
 skill-creator search-skill --pwd="{{SKILL_PATH}}" --list "搜索关键词"
 ```
 
 **示例查询：**
+
 - "如何创建router"
 - "状态管理最佳实践"
 - "错误处理机制"
@@ -131,6 +146,7 @@ skill-creator search-skill --pwd="{{SKILL_PATH}}" --list "搜索关键词"
 - "TypeScript集成"
 
 ### 添加自定义知识点
+
 当发现文档中缺少重要信息时，可以添加自己的知识点：
 
 ```bash
@@ -138,6 +154,7 @@ skill-creator add-skill --pwd="{{SKILL_PATH}}" --title "知识点标题" --conte
 ```
 
 **添加内容类型：**
+
 - 🚀 **最佳实践**: 项目中的实际经验和技巧
 - ⚠️ **注意事项**: 容易出错的地方和解决方案
 - 🔧 **配置技巧**: 特殊场景的配置方法
@@ -145,18 +162,21 @@ skill-creator add-skill --pwd="{{SKILL_PATH}}" --title "知识点标题" --conte
 - 🐛 **问题解决**: 常见问题和解决步骤
 
 ### 更新官方文档
+
 获取最新的官方文档并重新切片：
 
 **强制更新（覆盖现有文档）：**
+
 ```bash
 skill-creator download-context7 --pwd="{{SKILL_PATH}}" --force
 ```
 
 ### 查看所有内容
+
 列出技能中所有可用的知识点：
 
 ```bash
-skill-creator list-content --pwd="{{SKILL_PATH}}"
+skill-creator list-skills --pwd="{{SKILL_PATH}}"
 ```
 
 ## 文档结构说明
@@ -182,24 +202,32 @@ skill-creator list-content --pwd="{{SKILL_PATH}}"
 ## 搜索技巧
 
 ### 🔍 **精确搜索**
+
 使用具体的技术术语：
+
 - "useQuery hook用法"
 - "路由守卫实现"
 - "异步状态管理"
 
 ### 🎯 **场景化搜索**
+
 基于使用场景：
+
 - "在React项目中集成"
 - "服务端渲染配置"
 - "移动端优化"
 
 ### 📋 **对比搜索**
+
 比较不同方案：
+
 - "useState vs useReducer"
 - "客户端路由 vs 服务端路由"
 
 ### 🔧 **问题导向搜索**
+
 描述具体问题：
+
 - "解决内存泄漏问题"
 - "优化首次加载时间"
 - "处理并发请求"
@@ -207,18 +235,21 @@ skill-creator list-content --pwd="{{SKILL_PATH}}"
 ## 贡献指南
 
 ### 📝 **内容贡献**
+
 - 添加实际项目经验和最佳实践
 - 分享遇到的问题和解决方案
 - 补充官方文档中缺失的信息
 - 提供代码示例和配置案例
 
 ### 🎯 **质量标准**
+
 - 内容准确，经过实际验证
 - 包含具体的代码示例
 - 说明适用场景和限制条件
 - 遵循现有的格式规范
 
 ### 🔄 **持续更新**
+
 - 定期更新官方文档
 - 根据版本迭代添加新特性说明
 - 修正过时的信息和错误用法
@@ -226,12 +257,14 @@ skill-creator list-content --pwd="{{SKILL_PATH}}"
 ## 工作流程
 
 ### 首次使用
+
 1. **基础搜索**: 使用 `search-skill` 查询基础概念
 2. **实践验证**: 根据搜索结果进行实际编码
 3. **补充内容**: 将实践经验通过 `add-skill` 添加为知识点
 4. **分享交流**: 与团队成员分享有价值的发现
 
 ### 日常使用
+
 1. **问题查询**: 遇到问题时先搜索现有知识点
 2. **内容扩展**: 发现新知识时及时补充
 3. **文档更新**: 定期更新官方文档以保持同步
@@ -240,6 +273,7 @@ skill-creator list-content --pwd="{{SKILL_PATH}}"
 ## 技术支持
 
 如果遇到技术问题，可以通过以下方式：
+
 1. 搜索现有知识点
 2. 查看官方文档部分
 3. 添加问题描述到用户知识点
@@ -247,4 +281,4 @@ skill-creator list-content --pwd="{{SKILL_PATH}}"
 
 ---
 
-*本技能基于skill-creator工具创建，持续更新以提供最佳的技术支持体验。*
+_本技能基于skill-creator工具创建，持续更新以提供最佳的技术支持体验。_
