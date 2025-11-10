@@ -1,5 +1,43 @@
 ## 聊天记录
 
+### 2025-11-10: 添加 baseDir 属性支持
+
+**需求**: 在 SKILL.md 的 `<user-skills>` 和 `<context7-skills>` 标签中添加 `baseDir` 属性,用于指定文件的基础路径。
+
+**实现内容**:
+
+1. **标签格式更新**:
+
+   ```xml
+   <!-- 用户技能 -->
+   <user-skills baseDir="assets/references/user">
+   - file1.md
+   - file2.md
+   </user-skills>
+
+   <!-- Context7 文档 -->
+   <context7-skills id="/project/id" baseDir="assets/references/context7/{id}">
+   - doc1.md
+   - doc2.md
+   </context7-skills>
+   ```
+
+2. **核心改进**:
+
+   - 新增 `TagContent.baseDir` 字段
+   - `parseSkillMdTags()` 支持解析 baseDir 属性
+   - `updateSkillMdTag()` 支持保留和更新 baseDir
+   - 提供默认值确保向后兼容
+
+3. **优势**:
+   - **节省 tokens**: 文件路径使用相对路径
+   - **清晰层次**: baseDir 明确指定文件基础目录
+   - **灵活性**: 未来可支持自定义 baseDir
+   - **向后兼容**: 默认值确保现有代码继续工作
+
+
+---
+
 很好，我自己试了一下， 目前返回的内容是一个 File+Preview 这样的大纲。所以你是要让模型基于File路径再调用工具去读取是吗？
 是有些道理，但是我建议这样改：
 

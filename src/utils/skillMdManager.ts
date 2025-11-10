@@ -8,6 +8,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 export interface TagContent {
   tagName: string
   id?: string
+  baseDir?: string
   content: string
   startIndex: number
   endIndex: number
@@ -19,27 +20,31 @@ export interface TagContent {
 export function parseSkillMdTags(content: string): TagContent[] {
   const tags: TagContent[] = []
 
-  // Match <user-skills>...</user-skills>
-  const userSkillsRegex = /<user-skills>([\s\S]*?)<\/user-skills>/g
+  // Match <user-skills baseDir="...">...</user-skills>
+  const userSkillsRegex = /<user-skills(?:\s+baseDir="([^"]+)")?>(\s[\s\S]*?)<\/user-skills>/g
   let match
 
   while ((match = userSkillsRegex.exec(content)) !== null) {
     tags.push({
       tagName: 'user-skills',
-      content: match[1].trim(),
+      baseDir: match[1] || 'assets/references/user', // Default baseDir
+      content: match[2].trim(),
       startIndex: match.index,
       endIndex: match.index + match[0].length,
     })
   }
 
-  // Match <context7-skills id="xxx">...</context7-skills>
-  const context7Regex = /<context7-skills\s+id="([^"]+)">([\s\S]*?)<\/context7-skills>/g
+  // Match <context7-skills id="xxx" baseDir="...">...</context7-skills>
+  const context7Regex =
+    /<context7-skills\s+id="([^"]+)"(?:\s+baseDir="([^"]+)")?>(\s[\s\S]*?)<\/context7-skills>/g
 
   while ((match = context7Regex.exec(content)) !== null) {
+    const projectId = match[1]
     tags.push({
       tagName: 'context7-skills',
-      id: match[1],
-      content: match[2].trim(),
+      id: projectId,
+      baseDir: match[2] || `assets/references/context7/${projectId}`, // Default baseDir with project ID
+      content: match[3].trim(),
       startIndex: match.index,
       endIndex: match.index + match[0].length,
     })
@@ -55,7 +60,8 @@ export function updateSkillMdTag(
   content: string,
   tagName: 'user-skills' | 'context7-skills',
   newContent: string,
-  id?: string
+  id?: string,
+  baseDir?: string
 ): string {
   const tags = parseSkillMdTags(content)
 
@@ -65,8 +71,16 @@ export function updateSkillMdTag(
   )
 
   if (existingTag) {
-    // Replace existing tag content
-    const tagStart = tagName === 'user-skills' ? `<user-skills>` : `<context7-skills id="${id}">`
+    // Replace existing tag content, preserving or updating baseDir
+    const finalBaseDir = baseDir || existingTag.baseDir
+    let tagStart: string
+    if (tagName === 'user-skills') {
+      tagStart = finalBaseDir ? `<user-skills baseDir="${finalBaseDir}">` : `<user-skills>`
+    } else {
+      tagStart = finalBaseDir
+        ? `<context7-skills id="${id}" baseDir="${finalBaseDir}">`
+        : `<context7-skills id="${id}">`
+    }
     const tagEnd = `</${tagName}>`
     const newTag = `${tagStart}\n${newContent}\n${tagEnd}`
 
@@ -95,7 +109,11 @@ export function updateSkillMdTag(
         insertPosition = commentEnd > headerEnd ? commentEnd + 3 : headerEnd
       }
 
-      const newTag = `\n\n<context7-skills id="${id}">\n${newContent}\n</context7-skills>`
+      const finalBaseDir = baseDir || `assets/references/context7/${id}`
+      const tagStart = finalBaseDir
+        ? `<context7-skills id="${id}" baseDir="${finalBaseDir}">`
+        : `<context7-skills id="${id}">`
+      const newTag = `\n\n${tagStart}\n${newContent}\n</context7-skills>`
 
       return content.slice(0, insertPosition) + newTag + content.slice(insertPosition)
     }
@@ -188,10 +206,11 @@ export function updateSkillMdFile(
   filePath: string,
   tagName: 'user-skills' | 'context7-skills',
   newContent: string,
-  id?: string
+  id?: string,
+  baseDir?: string
 ): void {
   const content = readFileSync(filePath, 'utf-8')
-  const updated = updateSkillMdTag(content, tagName, newContent, id)
+  const updated = updateSkillMdTag(content, tagName, newContent, id, baseDir)
   writeFileSync(filePath, updated, 'utf-8')
 }
 

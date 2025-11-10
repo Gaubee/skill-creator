@@ -33,7 +33,7 @@ skill-creator remove-context7 --pwd "{{SKILL_PATH}}" <context7_library_id>
 
 ## User Skills
 
-<user-skills>
+<user-skills baseDir="assets/references/user">
 </user-skills>
 
 ## Context7 Documentation

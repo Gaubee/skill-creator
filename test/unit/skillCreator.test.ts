@@ -145,10 +145,10 @@ describe('SkillCreator', () => {
       const content = readFileSync(skillMdPath, 'utf-8')
 
       // Check template variable replacement
-      expect(content).toContain('name: test-template')
+      expect(content).toContain('# test-template') // Check H1 title
       expect(content).toContain('Test template skill for documentation')
       expect(content).toContain('skill-creator add-skill --pwd') // Check CLI commands section
-      expect(content).toContain('<user-skills>') // Check user skills tag
+      expect(content).toContain('<user-skills baseDir="assets/references/user">') // Check user skills tag with baseDir
       expect(content).toContain('## Context7 Documentation') // Check context7 section
       expect(content).toContain(result.skillPath) // {{SKILL_PATH}} should be replaced
 

@@ -283,4 +283,15 @@ skill-creator list-skills --pwd="{{SKILL_PATH}}"
 
 ---
 
+## 用户技能
+
+<user-skills baseDir="assets/references/user">
+</user-skills>
+
+## Context7 文档
+
+<!-- Context7 项目将自动在此列出 -->
+
+---
+
 _本技能基于skill-creator工具创建，持续更新以提供最佳的技术支持体验。_
