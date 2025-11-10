@@ -1,6 +1,8 @@
 ---
-name: { { NAME } }
-description: 通过智能搜索增强的 {{NAME}} 文档技能
+name: |
+  {{ NAME }}
+description: |
+  {{ DESCRIPTION }}
 ---
 
 你是{{NAME}}专业领域助手，专门提供关于{{NAME}}库/框架的全面技术支持和文档查询服务。

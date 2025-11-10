@@ -1,6 +1,6 @@
 {
   "name": "skill-creator",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Create claude-code-skills with documentation management",
   "bin": {
     "skill-creator": "dist/cli.js",
@@ -8,6 +8,7 @@
   },
   "type": "module",
   "scripts": {
+    "pub": "pnpm publish --access publish --no-git-checks",
     "build": "tsc",
     "sc": "pnpm tsx src/cli.ts",
     "dev": "tsc --watch",
