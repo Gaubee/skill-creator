@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import type { CreateSkillOptions, CreateSkillResult } from '../types/index.js'
 import { Config } from '../utils/config.js'
+import { match } from 'ts-pattern'
 
 // Internal config interface used during skill creation
 interface SkillCreateConfig {
@@ -93,14 +94,14 @@ export class SkillCreator {
     let templateContent = readFileSync(templatePath, 'utf-8')
 
     // Replace template variables with options data
-    templateContent = templateContent
-      .replace(/{{NAME}}/g, options.skillName)
-      .replace(
-        /{{DESCRIPTION}}/g,
-        options.skillDescription ||
-          `Specialized ${options.skillName} expert assistant providing comprehensive technical support`
-      )
-      .replace(/{{SKILL_PATH}}/g, skillDir)
+    templateContent = templateContent.replace(/\{\{(.+?)\}\}/g, (_, key) => {
+      key = key.trim().toLowerCase()
+      return match(key)
+        .with('name', () => options.skillName)
+        .with('description', () => options.skillDescription ?? '')
+        .with('skill_path', () => skillDir)
+        .otherwise(() => _)
+    })
 
     writeFileSync(join(skillDir, 'SKILL.md'), templateContent)
   }

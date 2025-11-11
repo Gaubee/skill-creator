@@ -1,6 +1,6 @@
 {
   "name": "skill-creator",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Create claude-code-skills with documentation management",
   "bin": {
     "skill-creator": "dist/cli.js",
@@ -42,6 +42,7 @@
     "inquirer": "^12.10.0",
     "markdown-it": "^14.1.0",
     "ora": "^9.0.0",
+    "ts-pattern": "^5.9.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
