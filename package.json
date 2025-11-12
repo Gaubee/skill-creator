@@ -1,17 +1,28 @@
 {
   "name": "skill-creator",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "Create claude-code-skills with documentation management",
   "bin": {
-    "skill-creator": "dist/cli.js",
-    "sc": "dist/cli.js"
+    "skill-creator": "dist/cli.mjs",
+    "sc": "dist/cli.mjs"
   },
   "type": "module",
+  "main": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.mts",
+      "default": "./dist/cli.mjs"
+    }
+  },
   "scripts": {
     "pub": "pnpm publish --access publish --no-git-checks",
-    "build": "tsc",
+    "build": "tsdown",
     "sc": "pnpm tsx src/cli.ts",
-    "dev": "tsc --watch",
+    "dev": "tsdown --watch",
     "cli": "node dist/cli.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -32,30 +43,32 @@
   "license": "MIT",
   "dependencies": {
     "@chroma-core/default-embed": "^0.1.8",
+    "chromadb": "^3.0.17"
+  },
+  "devDependencies": {
+    "@gaubee/nodekit": "^0.14.0",
     "@leeoniya/ufuzzy": "^1.0.19",
-    "chromadb": "^3.0.17",
+    "@types/inquirer": "^9.0.9",
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^24.9.1",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
     "commander": "^14.0.1",
     "dedent": "^1.5.3",
     "fuse.js": "^7.1.0",
     "glob": "^11.0.0",
     "gradient-string": "^3.0.0",
     "inquirer": "^12.10.0",
+    "jsdom": "^27.0.1",
     "markdown-it": "^14.1.0",
     "ora": "^9.0.0",
-    "ts-pattern": "^5.9.0",
-    "zod": "^4.1.12"
-  },
-  "devDependencies": {
-    "@types/inquirer": "^9.0.9",
-    "@types/markdown-it": "^14.1.2",
-    "@types/node": "^24.9.1",
-    "@vitest/coverage-v8": "^3.2.4",
-    "@vitest/ui": "^3.2.4",
-    "jsdom": "^27.0.1",
     "prettier": "^3.4.2",
+    "ts-pattern": "^5.9.0",
+    "tsdown": "^0.16.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "zod": "^4.1.12"
   },
   "repository": {
     "type": "git",

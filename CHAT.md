@@ -23,7 +23,6 @@
    ```
 
 2. **核心改进**:
-
    - 新增 `TagContent.baseDir` 字段
    - `parseSkillMdTags()` 支持解析 baseDir 属性
    - `updateSkillMdTag()` 支持保留和更新 baseDir
@@ -34,7 +33,6 @@
    - **清晰层次**: baseDir 明确指定文件基础目录
    - **灵活性**: 未来可支持自定义 baseDir
    - **向后兼容**: 默认值确保现有代码继续工作
-
 
 ---
 
@@ -360,3 +358,7 @@ SKILL.zh-CN.md 中缺乏完善的 search-skill 介绍，特别是 --mode=auto|ch
      - `skill-creator.zh-CN.md` 、 `SKILL.zh-CN.md`: 是给AI看的，优先介绍`--file-name`、`--file-content`、`--file-content-in`、`--file`
    - 更新测试
    - 确保测试的覆盖率
+
+---
+
+让这个项目使用tsdown来做编译，我要做到安装的时候0依赖，确保最快化安装。

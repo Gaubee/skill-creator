@@ -9,6 +9,7 @@ import { homedir } from 'node:os'
 import type { CreateSkillOptions, CreateSkillResult } from '../types/index.js'
 import { Config } from '../utils/config.js'
 import { match } from 'ts-pattern'
+import { rootResolver } from '../utils/path.js'
 
 // Internal config interface used during skill creation
 interface SkillCreateConfig {
@@ -19,7 +20,7 @@ export class SkillCreator {
   private templateDir: string
 
   constructor() {
-    this.templateDir = join(import.meta.dirname, '../../templates')
+    this.templateDir = rootResolver('templates')
   }
 
   async createSkill(options: CreateSkillOptions): Promise<CreateSkillResult> {

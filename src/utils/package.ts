@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs'
 import type { PackageVersion } from '../types/index.js'
 import { resolve } from 'node:path'
+import { rootResolver } from './path.js'
 
 export interface SearchResult {
   name: string
@@ -79,9 +80,7 @@ export class PackageUtils {
     [key: string]: any
   } | null {
     try {
-      const packageInfo = JSON.parse(
-        readFileSync(resolve(import.meta.dirname, '../../package.json'), 'utf-8')
-      )
+      const packageInfo = JSON.parse(readFileSync(rootResolver('package.json'), 'utf-8'))
       return packageInfo
     } catch {
       return null

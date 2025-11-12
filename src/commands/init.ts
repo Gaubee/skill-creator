@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path'
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 import { parseArgs } from './shared.js'
+import { rootResolver } from '../utils/path.js'
 
 /**
  * Install skill-creator as subagent in specified directory
@@ -25,7 +26,7 @@ async function installSubagent(location: 'current' | 'user'): Promise<void> {
   mkdirSync(targetDir, { recursive: true })
 
   // Read the skill-creator template
-  const templatePath = resolve(import.meta.dirname, '../../templates/skill-creator.md')
+  const templatePath = rootResolver('templates/skill-creator.md')
   const templateContent = readFileSync(templatePath, 'utf-8')
 
   // Inject DEFAULT_SCOPE if the template has the placeholder

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { execSync } from 'node:child_process'
 import { createTempDir, cleanupTempDir } from '../test-utils.js'
 
-// NOTE: These tests assume `npm run build` has been run and `dist/cli.js` is up to date.
+// NOTE: These tests assume `npm run build` has been run and `dist/cli.mjs` is up to date.
 describe('Skill Creation Integration Tests', () => {
   let tempDir: string
 
@@ -21,7 +21,7 @@ describe('Skill Creation Integration Tests', () => {
       'should create and use a complete skill following the new CLI structure',
       () => {
         const packageName = 'zod' // Using a real, simple package
-        const cliCmd = `node "${process.cwd()}/dist/cli.js"`
+        const cliCmd = `node "${process.cwd()}/dist/cli.mjs"`
 
         // 1. Search for package
         const searchOutput = execSync(`${cliCmd} search ${packageName}`, { encoding: 'utf-8' })
@@ -101,12 +101,12 @@ describe('Skill Creation Integration Tests', () => {
 
   describe('Error Cases', () => {
     it('should fail get-info for an invalid package', () => {
-      const command = `node ${process.cwd()}/dist/cli.js get-info invalid-nonexistent-package-123`
+      const command = `node ${process.cwd()}/dist/cli.mjs get-info invalid-nonexistent-package-123`
       expect(() => execSync(command, { encoding: 'utf-8' })).toThrow()
     })
 
     it('should fail create-cc-skill without required options', () => {
-      const command = `node ${process.cwd()}/dist/cli.js create-cc-skill my-skill`
+      const command = `node ${process.cwd()}/dist/cli.mjs create-cc-skill my-skill`
       expect(() => execSync(command, { encoding: 'utf-8' })).toThrow()
     })
   })
@@ -120,7 +120,7 @@ describe('Skill Creation Integration Tests', () => {
       mkdirSync(skillDir, { recursive: true })
       writeFileSync(join(skillDir, 'existing-file.txt'), 'existing content')
 
-      const command = `node ${process.cwd()}/dist/cli.js create-cc-skill --scope current test-force-skill`
+      const command = `node ${process.cwd()}/dist/cli.mjs create-cc-skill --scope current test-force-skill`
 
       expect(() => {
         execSync(command, { encoding: 'utf-8', cwd: tempDir })
@@ -137,7 +137,7 @@ describe('Skill Creation Integration Tests', () => {
       mkdirSync(skillDir, { recursive: true })
       writeFileSync(join(skillDir, 'existing-file.txt'), 'existing content')
 
-      const command = `node ${process.cwd()}/dist/cli.js create-cc-skill --scope current --force test-force-skill`
+      const command = `node ${process.cwd()}/dist/cli.mjs create-cc-skill --scope current --force test-force-skill`
       const output = execSync(command, { encoding: 'utf-8', cwd: tempDir })
 
       expect(output).toContain('✅ Skill created successfully')
@@ -161,7 +161,7 @@ describe('Skill Creation Integration Tests', () => {
       const originalEnv = process.env.HOME
       process.env.HOME = tempDir
 
-      const command = `node ${process.cwd()}/dist/cli.js init-cc`
+      const command = `node ${process.cwd()}/dist/cli.mjs init-cc`
       const output = execSync(command, { encoding: 'utf-8' })
 
       expect(output).toContain('✅ Skill-creator subagent installed successfully!')
