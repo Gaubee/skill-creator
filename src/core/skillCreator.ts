@@ -99,7 +99,12 @@ export class SkillCreator {
       key = key.trim().toLowerCase()
       return match(key)
         .with('name', () => options.skillName)
-        .with('description', () => options.skillDescription ?? '')
+        .with(
+          'description',
+          () =>
+            options.skillDescription ??
+            `Specialized ${options.skillName} expert assistant providing comprehensive technical support`
+        )
         .with('skill_path', () => skillDir)
         .otherwise(() => _)
     })
